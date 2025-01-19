@@ -37,13 +37,13 @@ ufw default allow outgoing
 ufw allow 51820/udp
 ufw allow ssh
 ufw allow 9735/tcp
-ufw allow proto tcp from 10.0.0.0/24 to 10.0.0.0/24 port 3000,3010,8332,50002
+ufw allow proto tcp from 10.0.0.0/24 to 10.0.0.0/24 port 3000,3010,8332,50001,50002
 ufw logging off
 ufw enable
 systemctl enable ufw
 
 # Already unstall the software we need later anyway
-apt install -y htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools
+apt install -y htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil
 
 reboot
 ssh root@france
@@ -104,9 +104,8 @@ vi .bitcoin/bitcoin.conf
 daemon=1
 prune=60000
 server=1
+txindex=1
 onion=127.0.0.1:9050
-#dns=0
-#dnsseed=0
 listen=1
 deprecatedrpc=create_bdb
 walletbroadcast=0
@@ -474,12 +473,6 @@ REST Port 3010
 
 
 
-
-
-
-
-
-
 # OPTIONAL EPS
 
 
@@ -506,13 +499,13 @@ initial_import_count = 1000
 gap_limit = 25
 
 [electrum-server]
-host = 127.0.0.1
-port = 50002
+host = 0.0.0.0
+port = 50001
 
 ip_whitelist = *
 
-certfile = certs/server.csr
-keyfile = certs/server.key
+#certfile = certs/server.csr
+#keyfile = certs/server.key
 
 disable_mempool_fee_histogram = false
 mempool_update_interval = 60
@@ -535,7 +528,6 @@ openssl rsa -passin pass:x -in electrumpersonalserver/certs/server.pass.key -out
 rm electrumpersonalserver/certs/server.pass.key
 openssl req -new -key electrumpersonalserver/certs/server.key -out electrumpersonalserver/certs/server.csr
 
-openssl req -x509 -newkey rsa:4096 -keyout electrumpersonalserver/certs/key.pem -out electrumpersonalserver/certs/cert.pem -sha256 -days 3650
 python3 -m venv env
 source env/bin/activate
 pip3 install .
