@@ -1,36 +1,54 @@
-# Irgendwo muss es laufen
+# Was brauchen wir?
 
-Dieser Guide beschreibt das Aufsetzen des Nodes auf einem VPS. Es gibt eine Vielzahl von Anbietern, für ca. 5$/Monat kann man eine aureichend dimensionierte VPS bekommen:
+Dieser Guide beschreibt das Aufsetzen des Nodes auf einem VPS. Es gibt eine Vielzahl von Anbietern, für ca. 5$/Monat kann man einen VPS bekommen, der vollkommen ausreicht und der etwa folgende Eigenschaften aufweist: 
 
 
 - 8 GB RAM
 - 100 GB SSD
 - Ubuntu 24+
 
-Auf lokalem Host /etc/hosts editieren:
+6 GB RAM reichen auch, viel weniger als 80 GB Storage sollten es aber nicht sein.
 
+Desweiteren sollte dir die öffentliche IP deines Servers bekannt sein, die wir der Einfachheit halber  in /etc/hosts unseres Arbeitsrechners eintragen:
+
+```
 185.170.58.134  france
+```
+Ich habe france als Namen gewählt, da der VPS in Frankreich läuft.
 
-Auf dem VPS als root Sicherheitsvorkehrungen treffen:
+Ein root-Passwort solltest du auch über die Oberfläche des Anbieters vergeben können und ggf. ssh-Keys eintragen.
 
-# Es wird vorausgesetzt, dass root-Zugriff via ssh möglich ist und ssh-keys bestehen
+Als ersten werden wir ein paar Sicherheitseinstellungen vornehmen. Zunächste kopieren wir die SSH-Keys unseres aktuellen Users auf unseren Server:
 
+```
 ssh-copy-id root@france
 ssh root@france
+```
+Du solltest nun auf deinem VPS eingeloggt sein.
 
-# disable password authentication for ssh
+### Alias für Editor festlegen
 
-vi /etc/ssh/sshd_config
+alias ww='vi'
 
---------
+## Turn of password authentication
+
+
+```
+ww /etc/ssh/sshd_config
+```
+
+```
 PasswordAuthentication no
---------
+```
 
+```
 systemctl restart ssh.service
 
 apt update && apt full-upgrade -y
 
-# Firewall konfigutieren
+[...]
+
+## Firewall konfigutieren
 apt -y install ufw
 ufw default deny incoming
 ufw default allow outgoing
@@ -42,10 +60,15 @@ ufw logging off
 ufw enable
 systemctl enable ufw
 
-# Already unstall the software we need later anyway
+## Etwas Software installieren
 apt install -y htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil
 
 reboot
+```
+
+[...]
+
+```
 ssh root@france
 
 systemctl enable fail2ban && systemctl start fail2ban
@@ -55,33 +78,27 @@ systemctl enable tor && systemctl start tor
 
 useradd -m bitcoin
 passwd bitcoin
-# PW 1 store in Passwortmanager
+
+## PW 1 in Passwortmanager speichern: bitcoin User
 sudo adduser bitcoin sudo
 usermod -a -G debian-tor bitcoin
 chsh bitcoin -s /bin/bash
-
-
-
-
-
-
 
 ####################
 ### BITCOIN USER ###
 ####################
 
-
-
-
-
 su - bitcoin
 ssh-keygen -t rsa -b 4096
 
-# On source machine:
+# Auf Arbeitsrechner:
 ssh-copy-id bitcoin@france
 
-# Continue on node
-# Install Bitcoin Core
+ssh bitcoin@france
+
+## Eingeloggt als User bitcoin auf VPS
+
+## Install Bitcoin Core
 VERSION="27.0"
 wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz
 wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS
@@ -89,21 +106,31 @@ wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS.asc
 sha256sum --ignore-missing --check SHA256SUMS
 curl -s "https://api.github.com/repositories/355107265/contents/builder-keys" | grep download_url | grep -oE "https://[a-zA-Z0-9./-]+" | while read url; do curl -s "$url" | gpg --import; done
 gpg --verify SHA256SUMS.asc
+```
+
+## Check signatures
+
+```
 tar -xvf bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz
 sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-${VERSION}/bin/*
 mkdir -p .bitcoin .lightning/bitcoin/backups/
 
 BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
+echo "BITCOIND_PW=${BITCOIND_PW}"
+```
 
-# Passwort muss nicht in PW Manager
+### Passwort muss nicht in PW Manager, aber auf Notizzettel, genau wie die PUBLIC_IP
 
+```
 PUBLIC_IP="185.170.58.134"
 
-vi .bitcoin/bitcoin.conf
-————————
+ww .bitcoin/bitcoin.conf
+```
+
+```
 daemon=1
-prune=60000
 server=1
+prune=60000
 txindex=1
 onion=127.0.0.1:9050
 listen=1
@@ -113,14 +140,12 @@ rpcbind=0.0.0.0:8332
 rpcallowip=0.0.0.0/0
 whitelist=0.0.0.0/0
 rpcuser=bitcoin
-————————
+```
 
+```
 echo "rpcpassword=${BITCOIND_PW}" >>.bitcoin/bitcoin.conf
 
-
-
-
-# Install Core Lightning
+## Install Core Lightning
 
 git clone https://github.com/ElementsProject/lightning.git
 cd lightning
@@ -133,9 +158,10 @@ pip3 install --user pyln-client websockets --break-system-packages
 pip3 install --user flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages
 
 cd
-vi .lightning/config
+ww .lightning/config
+```
 
-————————
+```
 network=bitcoin
 log-file=cl.log
 clnrest-host=0.0.0.0
@@ -163,24 +189,17 @@ poetry install
 poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp
 
 
-
-
-
-
 #################
 ### ROOT USER ###
 #################
 
+exit # zu root zurück
 
+## bitcoind start script
 
+ww /etc/systemd/system/bitcoind.service
 
-exit
-
-# bitcoind start script
-
-vi /etc/systemd/system/bitcoind.service
-
-————————
+```
 [Unit]
 Description=Bitcoin daemon
 
@@ -195,16 +214,18 @@ TimeoutSec=120
 
 [Install]
 WantedBy=multi-user.target
-————————
+```
 
+```
 systemctl enable bitcoind && systemctl start bitcoind
 tail -f /home/bitcoin/.bitcoin/debug.log
 
 # lightningd start script
 
-vi /etc/systemd/system/lightningd.service
+ww /etc/systemd/system/lightningd.service
+```
 
-————————
+```
 [Unit]
 Description=c-lightning daemon on mainnet
 After=bitcoind.service wg-quick@wg0.service
@@ -225,12 +246,14 @@ MemoryDenyWriteExecute=true
 
 [Install]
 WantedBy=multi-user.target
-————————
+```
 
+```
 systemctl enable lightningd.service && systemctl start lightningd.service
 tail -f /home/bitcoin/.lightning/bitcoin/cl.log
+```
 
-# Lightning läuft
+## Lightning läuft
 
 
 # RTL
@@ -239,15 +262,16 @@ tail -f /home/bitcoin/.lightning/bitcoin/cl.log
 ### BITCOIN USER ###
 ####################
 
-
+```
 su - bitcoin
 git clone https://github.com/Ride-The-Lightning/RTL.git
 cd RTL
 npm install --omit=dev --legacy-peer-deps
 
-vi RTL-Config.json
+ww RTL-Config.json
+```
 
-————————
+```
 {
   "port": "3000",
   "defaultNodeIndex": 1,
@@ -279,31 +303,28 @@ vi RTL-Config.json
   ],
   "multiPass": "<WEB_PW>"
 }
-————————
+```
 
-# PW 2 in password manager
+## PW 2 in password manager
 
+```
 lightning-cli createrune
-echo "LIGHTNING_RUNE='<RUNE>>'" >rune.txt
+RUNE = <output from above>
+echo "LIGHTNING_RUNE=\"${RUNE}\"" >rune.txt
+```
 
-# END RTL
+## END RTL
+
+
 exit
-
-
-
 
 #################
 ### ROOT USER ###
 #################
 
+ww /etc/systemd/system/rtl.service
 
-
-
-
-
-vi /etc/systemd/system/rtl.service
-
-————————
+```
 [Unit]
 Description=Ride The Lightning
 After=bitcoind.service lightningd.service wg-quick@wg0.service
@@ -317,18 +338,18 @@ Type=simple
 
 [Install]
 WantedBy=multi-user.target
-————————
+```
 
+## configure wireguard
 
-
-# configure wireguard
-
+```
 wg genkey | sudo tee /etc/wireguard/private.key
 chmod go= /etc/wireguard/private.key
 cat /etc/wireguard/private.key | wg pubkey | tee /etc/wireguard/public.key
-vi /etc/wireguard/wg0.conf
+ww /etc/wireguard/wg0.conf
+```
 
-————————
+```
 [Interface]
 Address = 10.0.0.1/24
 ListenPort = 51820
@@ -351,17 +372,20 @@ PersistentKeepalive = 15
 [Peer]
 PublicKey = <DESkTOP_PUBLIC_KEY>
 AllowedIPs = 10.0.0.3/32
-————————
+```
 
+```
 echo "net.ipv4.ip_forward=1" >>/etc/sysctl.conf
 sysctl -p
 
 systemctl restart wg-quick@wg0 && wg show
+```
 
 <wireguard-screenshot iphone>
 
-# wireguard config desktop
-------------
+## wireguard config desktop
+
+```
 [Interface]
 PrivateKey = qCPM+4IcX7gpgFyBEphTYeW3dJEb++/w4MggKXJNnE8=
 Address = 10.0.0.3/24
@@ -370,28 +394,34 @@ Address = 10.0.0.3/24
 PublicKey = mC0p+VBgBJImwlb7D2MehElGuY+F9r3yF7mFd4pFYDk=
 AllowedIPs = 10.0.0.1/32
 Endpoint = 185.170.58.134:51820
-------------
+```
 
 ## Checks mit ping usw.
 
+```
 systemctl enable rtl.service && systemctl start rtl.service
 
 journalctl -f
 netstat -tulpn
+```
 
-# RTL läuft
+## RTL läuft
 
 
 
-# BACKUPS & MAINTENANCE
+## BACKUPS & MAINTENANCE
 
-vi /etc/cron.hourly/backuptasks
+```
+ww /etc/cron.hourly/backuptasks
+```
 
-————————
+```
 #!/bin/sh
 rsync -av /home/bitcoin/.lightning/bitcoin/emergency.recover /home/bitcoin/.lightning/bitcoin/backups/emergency.recover.bak
 rsync -av /home/bitcoin/.lightning/bitcoin/hsm_secret /home/bitcoin/.lightning/bitcoin/backups/hsm_secret.bak
-————————
+```
+
+```
 chmod 755 /etc/cron.hourly/backuptasks
 
 vi /etc/crontab
@@ -401,11 +431,11 @@ vi /etc/crontab
 ————————
 
 systemctl restart cron.service
+```
 
+## Optional NFS
 
-# Optional NFS
-
-vi /etc/systemd/system/multi-user.target.wants/wg-quick@wg1.service
+ww /etc/systemd/system/multi-user.target.wants/wg-quick@wg1.service
 
 # add
 ————————
@@ -439,49 +469,27 @@ mkdir /mnt/nfsshare/backups
 
 # END BACKUPS
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-# set up ZeusLN
+## set up ZeusLN on mobile
 
 Host: 10.0.0.1
 Rune
 REST Port 3010
 
-
-
-
-
 ####################
 ### BITCOIN USER ###
 ####################
 
-
-
-
-
-
-
-
 # OPTIONAL EPS
 
-
+```
 cd
 wget https://github.com/chris-belcher/electrum-personal-server/archive/refs/tags/eps-v0.2.4.tar.gz
 tar xvfz eps-v0.2.4.tar.gz
 cd electrum-personal-server-eps-v0.2.4/
 vi config.ini
----------
+```
+
+```
 [master-public-keys]
 any_name_works = xpub661MyMwAqRbcFseXCwRdRVkhVuzEiskg4QUp5XpUdNf2uGXvQmnD4zcofZ1MN6Fo8PjqQ5cemJQ39f7RTwDVVputHMFjPUn8VRp2pJQMgEF
 wallet2 = xpub6CMAJ67vZWVXuzjzYXUoJgWrmuvFRiqiUG4dwoXNFmJtpTH3WgviANNxGyZYo27zxbMuqhDDym6fnBxmGaYoxr6LHgNDo1eEghkXHTX4Jnx
@@ -521,7 +529,9 @@ tor_port = 9050
 log_level_stdout = INFO
 append_log = false
 log_format = %(levelname)s:%(asctime)s: %(message)s
----------
+```
+
+```
 rm electrumpersonalserver/certs/*
 openssl genrsa -des3 -passout pass:x -out electrumpersonalserver/certs/server.pass.key 2048
 openssl rsa -passin pass:x -in electrumpersonalserver/certs/server.pass.key -out electrumpersonalserver/certs/server.key
@@ -535,8 +545,8 @@ python3 -m pip install setuptools
 bitcoin-cli createwallet electrumpersonalserver true true "" false false true
 electrum-personal-server config.ini
 electrum-personal-server config.ini
+```
 
 
-
-# END EPS
+## END EPS
 
