@@ -38,7 +38,9 @@ ww /etc/ssh/sshd_config
 ```
 
 ```
+...
 PasswordAuthentication no
+...
 ```
 
 ```
@@ -48,7 +50,8 @@ apt update && apt full-upgrade -y
 
 [...]
 
-## Firewall konfigutieren
+## Firewall
+
 apt -y install ufw
 ufw default deny incoming
 ufw default allow outgoing
@@ -73,32 +76,38 @@ ssh root@france
 
 systemctl enable fail2ban && systemctl start fail2ban
 systemctl enable tor && systemctl start tor
+```
 
 # Create Bitcoin user
 
+```
 useradd -m bitcoin
 passwd bitcoin
+```
 
-## PW 1 in Passwortmanager speichern: bitcoin User
+### PW 1 in Passwortmanager speichern: bitcoin Systemuser
+
+```
 sudo adduser bitcoin sudo
 usermod -a -G debian-tor bitcoin
 chsh bitcoin -s /bin/bash
+```
 
-####################
-### BITCOIN USER ###
-####################
+## BITCOIN USER
 
 su - bitcoin
 ssh-keygen -t rsa -b 4096
 
-# Auf Arbeitsrechner:
-ssh-copy-id bitcoin@france
+## Auf Arbeitsrechner:
 
+ssh-copy-id bitcoin@france
 ssh bitcoin@france
 
 ## Eingeloggt als User bitcoin auf VPS
 
 ## Install Bitcoin Core
+
+```
 VERSION="27.0"
 wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz
 wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS
@@ -108,7 +117,7 @@ curl -s "https://api.github.com/repositories/355107265/contents/builder-keys" | 
 gpg --verify SHA256SUMS.asc
 ```
 
-## Check signatures
+### Check signatures
 
 ```
 tar -xvf bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz
@@ -119,7 +128,7 @@ BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head 
 echo "BITCOIND_PW=${BITCOIND_PW}"
 ```
 
-### Passwort muss nicht in PW Manager, aber auf Notizzettel, genau wie die PUBLIC_IP
+Das Passwort muss nicht in PW Manager, aber auf Notizzettel, genau wie die PUBLIC_IP:
 
 ```
 PUBLIC_IP="185.170.58.134"
@@ -175,29 +184,30 @@ rpc-file-mode=0664
 bitcoin-rpcuser=bitcoin
 bitcoin-rpcport=8332
 bitcoin-rpcconnect=127.0.0.1
-————————
+```
 
+```
 echo "bind-addr=${PUBLIC_IP}:9735" >>.lightning/config
 echo "announce-addr=${PUBLIC_IP}:9735" >>.lightning/config
 echo "bitcoin-rpcpassword=${BITCOIND_PW}" >>.lightning/config
+```
 
-## Core Lightning Plugins
+### Core Lightning Plugins
 
+```
 git clone https://github.com/lightningd/plugins.git
 cd plugins/backup
 poetry install
 poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp
+```
+## ROOT USER
 
-
-#################
-### ROOT USER ###
-#################
-
+```
 exit # zu root zurück
 
 ## bitcoind start script
-
 ww /etc/systemd/system/bitcoind.service
+```
 
 ```
 [Unit]
@@ -253,14 +263,11 @@ systemctl enable lightningd.service && systemctl start lightningd.service
 tail -f /home/bitcoin/.lightning/bitcoin/cl.log
 ```
 
-## Lightning läuft
+### Lightning läuft
 
+## RTL
 
-# RTL
-
-####################
-### BITCOIN USER ###
-####################
+### BITCOIN USER
 
 ```
 su - bitcoin
@@ -305,24 +312,23 @@ ww RTL-Config.json
 }
 ```
 
-## PW 2 in password manager
+### PW 2 in password manager
 
 ```
 lightning-cli createrune
-RUNE = <output from above>
+RUNE="<output from above>"
 echo "LIGHTNING_RUNE=\"${RUNE}\"" >rune.txt
 ```
 
-## END RTL
-
+### END RTL
 
 exit
 
-#################
-### ROOT USER ###
-#################
+### ROOT USER
 
+```
 ww /etc/systemd/system/rtl.service
+```
 
 ```
 [Unit]
@@ -383,7 +389,7 @@ systemctl restart wg-quick@wg0 && wg show
 
 <wireguard-screenshot iphone>
 
-## wireguard config desktop
+## Wireguard Config Arbeitsrechner
 
 ```
 [Interface]
@@ -396,11 +402,10 @@ AllowedIPs = 10.0.0.1/32
 Endpoint = 185.170.58.134:51820
 ```
 
-## Checks mit ping usw.
+### Checks mit ping usw.
 
 ```
 systemctl enable rtl.service && systemctl start rtl.service
-
 journalctl -f
 netstat -tulpn
 ```
@@ -409,7 +414,7 @@ netstat -tulpn
 
 
 
-## BACKUPS & MAINTENANCE
+# BACKUPS & MAINTENANCE
 
 ```
 ww /etc/cron.hourly/backuptasks
@@ -425,11 +430,13 @@ rsync -av /home/bitcoin/.lightning/bitcoin/hsm_secret /home/bitcoin/.lightning/b
 chmod 755 /etc/cron.hourly/backuptasks
 
 vi /etc/crontab
+```
 
-————————
+```
 55 4    * * *   bitcoin lightning-cli backup-compact
-————————
+```
 
+```
 systemctl restart cron.service
 ```
 
@@ -437,7 +444,8 @@ systemctl restart cron.service
 
 ww /etc/systemd/system/multi-user.target.wants/wg-quick@wg1.service
 
-# add
+
+### add
 ————————
 Before=mnt-odroidnfs.mount
 ————————
@@ -469,15 +477,13 @@ mkdir /mnt/nfsshare/backups
 
 # END BACKUPS
 
-## set up ZeusLN on mobile
+## Set up ZeusLN on mobile
 
 Host: 10.0.0.1
 Rune
 REST Port 3010
 
-####################
-### BITCOIN USER ###
-####################
+### BITCOIN USER
 
 # OPTIONAL EPS
 
@@ -542,11 +548,22 @@ python3 -m venv env
 source env/bin/activate
 pip3 install .
 python3 -m pip install setuptools
+ww electrumpersonalserver/server/common.py
+```
+
+```
+Zeilen 147-149 ersetzen durch:
+                context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+                context.load_cert_chain(certfile=certfile, keyfile=keyfile)
+                sock = context.wrap_socket(sock, server_side=True)
+```
+
+```
 bitcoin-cli createwallet electrumpersonalserver true true "" false false true
 electrum-personal-server config.ini
 electrum-personal-server config.ini
 ```
 
 
-## END EPS
+### END EPS
 
