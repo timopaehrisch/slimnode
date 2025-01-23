@@ -40,7 +40,7 @@ useradd -m bitcoin -s /bin/bash && sudo adduser bitcoin sudo && usermod -a -G de
 passwd bitcoin
 ```
 
-Save this password in your password manager: VPS bitcoin user
+Password 1: Set a password here and save it in your password manager (e.g. as 'VPS bitcoin user')
 
 ## Configure Firewall & Reboot
 
@@ -96,7 +96,7 @@ mkdir -p .bitcoin .lightning/bitcoin/backups/
 BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
 ```
 
-Set you public/external IP
+Set your public/external IP
 
 ```
 PUBLIC_IP="23.94.235.61"
@@ -236,7 +236,7 @@ tail -f /home/bitcoin/.lightning/bitcoin/cl.log
 
 ### Bitcoin & Lightning running
 
-## RTL
+## Install RTL
 
 ### BITCOIN USER
 
@@ -245,8 +245,13 @@ su - bitcoin
 git clone https://github.com/Ride-The-Lightning/RTL.git
 cd RTL
 npm install --omit=dev --legacy-peer-deps
+```
 
-WEB_WP="changeme" tee RTL-Config.json <<EOF
+Password 2: Change WEB_PW to your future RTL web login password and save the PW in you PW manager (e.g. as 'RTL web login')
+
+```console
+WEB_PW="changeme" 
+tee RTL-Config.json <<EOF
 {
   "port": "3000",
   "defaultNodeIndex": 1,
@@ -279,14 +284,10 @@ WEB_WP="changeme" tee RTL-Config.json <<EOF
   "multiPass": "${WEB_PW}"
 }
 EOF
-```
 
-### PW 2 in password manager
+echo "LIGHTNING_RUNE=`lightning-cli createrune | jq .rune`" >rune.txt
 
-```console
-lightning-cli createrune
-RUNE="<output from above>"
-echo "LIGHTNING_RUNE=\"${RUNE}\"" >rune.txt
+sudo systemctl enable rtl.service && sudo systemctl start rtl.service
 ```
 
 ### END RTL
@@ -318,7 +319,7 @@ PreDown = ip6tables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 # Phone
 [Peer]
 PublicKey = ${PHONE_PUBLIC_KEY}
-AllowedIPs = 10.0.0.2
+AllowedIPs = 10.0.0.2/32
 PersistentKeepalive = 15
 
 # Desktop
@@ -341,56 +342,35 @@ systemctl restart wg-quick@wg0 && wg show
 
 ```console
 [Interface]
-PrivateKey = qCPM+4IcX7gpgFyBEphTYeW3dJEb++/w4MggKXJNnE8=
+PrivateKey = <DESKTOP PRIVATE KEY>
 Address = 10.0.0.3/24
 
+# VPS
 [Peer]
 PublicKey = mC0p+VBgBJImwlb7D2MehElGuY+F9r3yF7mFd4pFYDk=
 AllowedIPs = 10.0.0.1/32
 Endpoint = 185.170.58.134:51820
 ```
 
-### Checks mit ping usw.
+# Backups & Maintenance
 
 ```console
-systemctl enable rtl.service && systemctl start rtl.service
-journalctl -f
-netstat -tulpn
-```
-
-## RTL läuft
-
-
-
-# BACKUPS & MAINTENANCE
-
-```console
-ww /etc/cron.hourly/backuptasks
-```
-
-```console
+tee /etc/cron.hourly/backuptasks <<EOF
 #!/bin/sh
 rsync -av /home/bitcoin/.lightning/bitcoin/emergency.recover /home/bitcoin/.lightning/bitcoin/backups/emergency.recover.bak
 rsync -av /home/bitcoin/.lightning/bitcoin/hsm_secret /home/bitcoin/.lightning/bitcoin/backups/hsm_secret.bak
-```
+EOF
 
-```console
 chmod 755 /etc/cron.hourly/backuptasks
 
-vi /etc/crontab
-```
+echo "55 4    * * *   bitcoin lightning-cli backup-compact"  >>/etc/crontab
 
-```console
-55 4    * * *   bitcoin lightning-cli backup-compact
-```
-
-```console
 systemctl restart cron.service
 ```
 
 ## Optional NFS
 
-ww /etc/systemd/system/multi-user.target.wants/wg-quick@wg1.service
+ww /etc/systemd/system/multi-user.target.wants/wg-quick@wg0.service
 
 
 ### add
