@@ -295,20 +295,18 @@ exit
 
 ### ROOT USER
 
-## configure wireguard
+## Configure wireguard - set the first two variable with the public keys for your phone & desktop pc
 
 ```console
-wg genkey | sudo tee /etc/wireguard/private.key
-chmod go= /etc/wireguard/private.key
-cat /etc/wireguard/private.key | wg pubkey | tee /etc/wireguard/public.key
-ww /etc/wireguard/wg0.conf
-```
+PHONE_PUBLIC_KEY=<SET ME>
+DESKTOP_PUBLIC_KEY=<SET_ME>
+wg genkey | sudo tee /etc/wireguard/private.key && chmod go= /etc/wireguard/private.key && cat /etc/wireguard/private.key | wg pubkey | tee /etc/wireguard/public.key
 
-```console
+PRIV_KEY=`cat /etc/wireguard/private.key` tee /etc/wireguard/wg0.conf <<EOF
 [Interface]
 Address = 10.0.0.1/24
 ListenPort = 51820
-PrivateKey = <PRIVATE_KEY>
+PrivateKey = ${PRIV_KEY}
 
 PostUp = ufw route allow in on wg0 out on eth0
 PostUp = iptables -t nat -I POSTROUTING -o eth0 -j MASQUERADE
@@ -319,14 +317,15 @@ PreDown = ip6tables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 
 # Phone
 [Peer]
-PublicKey = <PHONE_PUBLIC_KEY>
+PublicKey = ${PHONE_PUBLIC_KEY}
 AllowedIPs = 10.0.0.2
 PersistentKeepalive = 15
 
-# MacMini
+# Desktop
 [Peer]
-PublicKey = <DESkTOP_PUBLIC_KEY>
+PublicKey = ${DESKTOP_PUBLIC_KEY}
 AllowedIPs = 10.0.0.3/32
+EOF
 ```
 
 ```console
