@@ -94,12 +94,16 @@ sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-${VERSION}/bin/*
 mkdir -p .bitcoin .lightning/bitcoin/backups/
 
 BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
-PUBLIC_IP="185.170.58.134"
-tee >>.bitcoin/bitcoin.conf <<EOF
+```
+
+Set you public/external IP
+
+```
+PUBLIC_IP="23.94.235.61"
+tee >~/.bitcoin/bitcoin.conf <<EOF
 daemon=1
 server=1
 prune=60000
-txindex=1
 onion=127.0.0.1:9050
 listen=1
 deprecatedrpc=create_bdb
@@ -137,9 +141,9 @@ rpc-file-mode=0664
 bitcoin-rpcuser=bitcoin
 bitcoin-rpcport=8332
 bitcoin-rpcconnect=127.0.0.1
+bitcoin-rpcpassword=${BITCOIND_PW}
 bind-addr=${PUBLIC_IP}:9735
 announce-addr=${PUBLIC_IP}:9735
-bitcoin-rpcpassword=${BITCOIND_PW}
 EOF
 ```
 
@@ -222,11 +226,15 @@ EOF
 systemctl enable bitcoind && systemctl enable lightningd.service && systemctl start bitcoind
 tail -f /home/bitcoin/.bitcoin/debug.log
 <CTRL-c>
-systemctl enable lightningd.service && systemctl start lightningd.service
-tail -f /home/bitcoin/.lightning/bitcoin/cl.log
 ```
 
-### Lightning läuft
+```
+systemctl enable lightningd.service && systemctl start lightningd.service
+tail -f /home/bitcoin/.lightning/bitcoin/cl.log
+<CTRL-c>
+```
+
+### Bitcoin & Lightning running
 
 ## RTL
 
@@ -238,10 +246,7 @@ git clone https://github.com/Ride-The-Lightning/RTL.git
 cd RTL
 npm install --omit=dev --legacy-peer-deps
 
-ww RTL-Config.json
-```
-
-```console
+WEB_WP="changeme" tee RTL-Config.json <<EOF
 {
   "port": "3000",
   "defaultNodeIndex": 1,
@@ -271,8 +276,9 @@ ww RTL-Config.json
       }
     }
   ],
-  "multiPass": "<WEB_PW>"
+  "multiPass": "${WEB_PW}"
 }
+EOF
 ```
 
 ### PW 2 in password manager
