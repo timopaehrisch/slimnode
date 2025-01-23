@@ -30,7 +30,7 @@ Du solltest nun auf deinem VPS eingeloggt sein.
 
 
 ```console
-apt update && apt full-upgrade -y && apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil && systemctl enable fail2ban && systemctl enable tor && echo "PasswordAuthentication no" >>/etc/ssh/sshd_config
+apt update && apt full-upgrade -y && apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep && systemctl enable fail2ban && systemctl enable tor && echo "PasswordAuthentication no" >>/etc/ssh/sshd_config
 ```
 
 # Create Bitcoin user and give some permissions
@@ -417,15 +417,14 @@ REST Port 3010
 
 ```
 cd
-wget https://github.com/chris-belcher/electrum-personal-server/archive/refs/tags/eps-v0.2.4.tar.gz
-tar xvfz eps-v0.2.4.tar.gz
-cd electrum-personal-server-eps-v0.2.4/
-vi config.ini
-```
+EPS_VERSION="v0.2.4"
+wget https://github.com/chris-belcher/electrum-personal-server/archive/refs/tags/eps-${EPS_VERSION}.tar.gz
+tar xvfz eps-${EPS_VERSION}.tar.gz
+cd electrum-personal-server-eps-${EPS_VERSION}/
 
-```
+tee config.ini <<EOF
 [master-public-keys]
-any_name_works = xpub661MyMwAqRbcFseXCwRdRVkhVuzEiskg4QUp5XpUdNf2uGXvQmnD4zcofZ1MN6Fo8PjqQ5cemJQ39f7RTwDVVputHMFjPUn8VRp2pJQMgEF
+wallet1 = xpub661MyMwAqRbcFseXCwRdRVkhVuzEiskg4QUp5XpUdNf2uGXvQmnD4zcofZ1MN6Fo8PjqQ5cemJQ39f7RTwDVVputHMFjPUn8VRp2pJQMgEF
 wallet2 = xpub6CMAJ67vZWVXuzjzYXUoJgWrmuvFRiqiUG4dwoXNFmJtpTH3WgviANNxGyZYo27zxbMuqhDDym6fnBxmGaYoxr6LHgNDo1eEghkXHTX4Jnx
 wallet3 = xpub6CMAJ67vZWVXyTJEaZndxZy9ACUufsmNuJwp9k5dHHKa22zQdsgALxXvMRFSwtvB8BRJzsd8h17pKqoAyHtkBrAoSqC9AUcXB1cPrSYATsZ
 
@@ -433,7 +432,7 @@ wallet3 = xpub6CMAJ67vZWVXyTJEaZndxZy9ACUufsmNuJwp9k5dHHKa22zQdsgALxXvMRFSwtvB8B
 host = 127.0.0.1
 port = 8332
 rpc_user = bitcoin
-rpc_password = 2z0HNxvB3Bbog6aNynVO8IXcE80wPq36uk6P4dBKsFqv5ktEMF
+rpc_password = ${BITCOIND_PWD}
 wallet_filename = electrumpersonalserver
 poll_interval_listening = 30
 poll_interval_connected = 1
@@ -446,8 +445,8 @@ port = 50001
 
 ip_whitelist = *
 
-#certfile = certs/server.csr
-#keyfile = certs/server.key
+#certfile = /home/bitcoin/electrum-personal-server-eps-v0.2.4/env/lib/python3.12/site-packages/electrumpersonalserver/certs/server.csr
+#keyfile = /home/bitcoin/electrum-personal-server-eps-v0.2.4/env/lib/python3.12/site-packages/electrumpersonalserver/certs/server.key
 
 disable_mempool_fee_histogram = false
 mempool_update_interval = 60
@@ -455,35 +454,36 @@ broadcast_method = tor-or-own-node
 tor_host = localhost
 tor_port = 9050
 
-
 [watch-only-addresses]
 #addr = 1DuqpoeTB9zLvVCXQG53VbMxvMkijk494n
 
 [logging]
-log_level_stdout = INFO
+log_level_stdout = DEBUG
 append_log = false
 log_format = %(levelname)s:%(asctime)s: %(message)s
+EOF
 ```
 
 ```
-rm electrumpersonalserver/certs/*
-openssl genrsa -des3 -passout pass:x -out electrumpersonalserver/certs/server.pass.key 2048
-openssl rsa -passin pass:x -in electrumpersonalserver/certs/server.pass.key -out electrumpersonalserver/certs/server.key
-rm electrumpersonalserver/certs/server.pass.key
-openssl req -new -key electrumpersonalserver/certs/server.key -out electrumpersonalserver/certs/server.csr
+CERT_DIR="electrumpersonalserver/certs"
+rm ${CERT_DIR}/*
+openssl genrsa -des3 -passout pass:x -out ${CERT_DIR}/server.pass.key 2048
+openssl rsa -passin pass:x -in ${CERT_DIR}/server.pass.key -out ${CERT_DIR}/cert.key
+rm ${CERT_DIR}/server.pass.key
+openssl req -new -key ${CERT_DIR}/cert.key -out ${CERT_DIR}/cert.csr
+openssl x509 -req -days 1825 -in ${CERT_DIR}/cert.csr -signkey ${CERT_DIR}/cert.key -out ${CERT_DIR}/cert.crt
+openssl x509 -enddate -in ${CERT_DIR}/cert.crt
 
 python3 -m venv env
 source env/bin/activate
-pip3 install .
-python3 -m pip install setuptools
-ww electrumpersonalserver/server/common.py
-```
 
-```
-Zeilen 147-149 ersetzen durch:
-                context = ssl.SSLContext(ssl.PROTOCOL_TLS)
-                context.load_cert_chain(certfile=certfile, keyfile=keyfile)
-                sock = context.wrap_socket(sock, server_side=True)
+# Patch EPS
+
+head -146 electrumpersonalserver/server/common.py >tmp.py
+printf "                context = ssl.SSLContext(ssl.PROTOCOL_TLS)\n                context.load_cert_chain(certfile=certfile, keyfile=keyfile)\n                sock = context.wrap_socket(sock, server_side=True)\n" >>tmp.py
+tail -414 electrumpersonalserver/server/common.py >>tmp.py
+cp tmp.py electrumpersonalserver/server/common.py
+python3 -m pip install . setuptools
 ```
 
 ```
