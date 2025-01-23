@@ -148,8 +148,12 @@ EOF
 ```console
 cd
 git clone https://github.com/lightningd/plugins.git && cd plugins/backup && poetry install && poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp
+
+sudo su -
 ```
+
 ## AS ROOT USER
+
 
 ### Start scripts for bitcoind, lightningd and RTL
 
@@ -191,7 +195,7 @@ PrivateDevices=true
 MemoryDenyWriteExecute=true
 
 [Install]
-WantedBy=multi-user.target" 
+WantedBy=multi-user.target
 EOF
 
 tee /etc/systemd/system/rtl.service <<EOF
@@ -208,7 +212,8 @@ Type=simple
 
 [Install]
 WantedBy=multi-user.target
-EOF 
+EOF
+
 ```
 
 ### Start bitcoin and check log file
