@@ -1,36 +1,34 @@
 # Slim node - set up Bitcoin and Lightning node with a few commands
 
-Dieser Guide beschreibt das Aufsetzen des Nodes auf einem VPS. Es gibt eine Vielzahl von Anbietern, für ca. 5$/Monat kann man einen VPS bekommen, der vollkommen ausreicht und der etwa folgende Eigenschaften aufweist:    
+This guide explains how to set up a Bitcoin and a Lightning node on a VPS. There are plenty of VPS providers out there, and for about $5/month, you can get a VPS that’s more than enough with specs like these:
 
+    8 GB RAM
+    100 GB SSD
+    Ubuntu 24+
 
-- 8 GB RAM
-- 100 GB SSD
-- Ubuntu 24+
+6 GB of RAM is fine too, but you shouldn’t go much lower than 80 GB of storage.
 
-6 GB RAM reichen auch, viel weniger als 80 GB Storage sollten es aber nicht sein.
-
-Desweiteren sollte dir die öffentliche IP deines Servers bekannt sein, die wir der Einfachheit halber  in /etc/hosts unseres Arbeitsrechners eintragen:
+You’ll also need to know your server’s public IP address. For simplicity, we’ll add it to the /etc/hosts file on our local machine:
 
 ```
 185.170.58.134  vps
 ```
 
-Ein root-Passwort solltest du auch über die Oberfläche des Anbieters vergeben können und ggf. ssh-Keys eintragen.
+You should also set up a root password through the provider’s interface and optionally add SSH keys.
 
-Als ersten werden wir ein paar Sicherheitseinstellungen vornehmen. Zunächste kopieren wir die SSH-Keys unseres aktuellen Users auf unseren Server:
+First, we’ll take care of some security settings. To start, let’s copy the SSH keys from our work station's user to the VPS:
 
 ```console
 ssh-copy-id root@vps
 ssh root@vps
 ```
-Du solltest nun auf deinem VPS eingeloggt sein.
-
+You should now be logged into your VPS as root.
 
 ### Turn of password authentication, update system & install some software
 
 
 ```console
-apt update && apt full-upgrade -y && apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep && systemctl enable fail2ban && systemctl enable tor && echo "PasswordAuthentication no" >>/etc/ssh/sshd_config
+apt update && apt full-upgrade -y && apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go && systemctl enable fail2ban && systemctl enable tor && echo "PasswordAuthentication no" >>/etc/ssh/sshd_config
 ```
 
 # Create Bitcoin user and give some permissions
@@ -45,15 +43,10 @@ Password 1: Set a password here and save it in your password manager (e.g. as 'V
 ## Configure Firewall & Reboot
 
 ```console
-ufw default deny incoming
-ufw default allow outgoing
-ufw allow 51820/udp
-ufw allow ssh
-ufw allow 9735/tcp
-ufw allow proto tcp from 10.0.0.0/24 to 10.0.0.0/24 port 3000,3010,8332,50001,50002
-ufw logging off
-ufw enable
-systemctl enable ufw
+ufw default deny incoming && ufw default allow outgoing
+ufw allow 51820/udp && ufw allow 22,9735,9736/tcp
+ufw allow proto tcp from 10.0.0.0/24 to 10.0.0.0/24 port 3000,8332,50002
+ufw logging off && ufw enable && systemctl enable ufw
 reboot
 ```
 
@@ -91,7 +84,7 @@ Check signatures here.
 ```console
 tar -xvf bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz
 sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-${VERSION}/bin/*
-mkdir -p .bitcoin .lightning/bitcoin/backups/
+mkdir -p .bitcoin .lightning/bitcoin/backups/ .lnd
 
 BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
 ```
@@ -113,6 +106,8 @@ rpcallowip=0.0.0.0/0
 whitelist=0.0.0.0/0
 rpcuser=bitcoin
 rpcpassword=${BITCOIND_PW}
+zmqpubrawblock=tcp://127.0.0.1:28332
+zmqpubrawtx=tcp://127.0.0.1:28333
 EOF
 ```
 
@@ -152,14 +147,39 @@ EOF
 ```console
 cd
 git clone https://github.com/lightningd/plugins.git && cd plugins/backup && poetry install && poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp
+```
 
+
+## Install lnd
+
+```console
+cd
+LND_VERSION="v0.18.4-beta"
+wget https://github.com/lightningnetwork/lnd/releases/download/${LND_VERSION}/lnd-linux-386-${LND_VERSION}.tar.gz
+tar -xvf lnd-linux-386-${LND_VERSION}.tar.gz
+ln -s lnd-linux-386-${LND_VERSION} lnd
+
+tee  ~/.lnd/lnd.conf <<EOF
+[Application Options]
+listen=${PUBLIC_IP}:9736
+externalip=${PUBLIC_IP}:9736
+debuglevel=debug
+
+[Bitcoin]
+bitcoin.mainnet=true
+bitcoin.node=bitcoind
+EOF
+
+./lnd/lndcli create
+
+```console
 sudo su -
 ```
 
 ## AS ROOT USER
 
 
-### Start scripts for bitcoind, lightningd and RTL
+### Start scripts for bitcoind, lightningd, lnd and RTL
 
 ```console
 tee  /etc/systemd/system/bitcoind.service <<EOF
@@ -202,6 +222,22 @@ MemoryDenyWriteExecute=true
 WantedBy=multi-user.target
 EOF
 
+tee  /etc/systemd/system/lnd.service <<EOF
+[Unit]
+Description=lnd
+
+[Service]
+User=bitcoin
+Group=bitcoin
+Type=forking
+ExecStart=/home/bitcoin/lnd/lnd
+KillMode=process
+TimeoutSec=60
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 tee /etc/systemd/system/rtl.service <<EOF
 [Unit]
 Description=Ride The Lightning
@@ -217,6 +253,8 @@ Type=simple
 [Install]
 WantedBy=multi-user.target
 EOF
+
+
 
 ```
 
