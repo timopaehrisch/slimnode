@@ -29,14 +29,14 @@ Du solltest nun auf deinem VPS eingeloggt sein.
 ### Turn of password authentication, update system & install some software
 
 
-```
+```console
 echo "PasswordAuthentication no" >>/etc/ssh/sshd_config && systemctl restart ssh.service
 apt update && apt full-upgrade -y && apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil && systemctl enable fail2ban && systemctl enable tor
 ```
 
 # Create Bitcoin user and give some permissions
 
-```
+```console
 useradd -m bitcoin -s /bin/bash && sudo adduser bitcoin sudo && usermod -a -G debian-tor bitcoin
 passwd bitcoin
 ```
@@ -45,7 +45,7 @@ Save this password in your password manager: VPS bitcoin user
 
 ## Configure Firewall & Reboot
 
-```
+```console
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow 51820/udp
@@ -61,7 +61,7 @@ reboot
 
 ## Login as bitcoin User & Generate SSH Keys
 
-```
+```console
 ssh bitcoin@vps
 ssh-keygen -t rsa -b 4096
 ```
@@ -70,14 +70,14 @@ ssh-keygen -t rsa -b 4096
 
 ## On Work Station
 
-```
+```console
 ssh-copy-id bitcoin@france
 ssh bitcoin@france
 ```
 
 ## Install Bitcoin Core
 
-```
+```console
 VERSION="27.0"
 wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz
 wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS
@@ -89,7 +89,7 @@ gpg --verify SHA256SUMS.asc
 
 Check signatures here.
 
-```
+```console
 tar -xvf bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz
 sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-${VERSION}/bin/*
 mkdir -p .bitcoin .lightning/bitcoin/backups/
@@ -101,13 +101,13 @@ echo "daemon=1\nserver=1\nprune=60000\ntxindex=1\nonion=127.0.0.1:9050\nlisten=1
 
 ## Install Core Lightning
 
-```
+```console
 git clone https://github.com/ElementsProject/lightning.git && cd lightning && git checkout v24.11.1
  && poetry install && ./configure --disable-rust && poetry run make && sudo make install
  ```
 
  Enter bitcoin user PW.
- ```
+ ```console
 pip3 install --user pyln-client websockets --break-system-packages
 pip3 install --user flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages
 
@@ -116,7 +116,7 @@ echo "network=bitcoin\nlog-file=cl.log\nclnrest-host=0.0.0.0\nclnrest-port=3010\
 
 ### Configure Backup Plugin
 
-```
+```console
 cd
 git clone https://github.com/lightningd/plugins.git && cd plugins/backup && poetry install && poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp
 ```
@@ -124,7 +124,7 @@ git clone https://github.com/lightningd/plugins.git && cd plugins/backup && poet
 
 ### Start scripts for bitcoind, lightningd and RTL
 
-```
+```console
 tee  /etc/systemd/system/bitcoind.service <<EOF
 [Unit]
 Description=Bitcoin daemon
@@ -184,12 +184,10 @@ EOF
 
 ### Start bitcoin and check log file
 
-```
+```console
 systemctl enable bitcoind && systemctl enable lightningd.service && systemctl start bitcoind
 tail -f /home/bitcoin/.bitcoin/debug.log
 <CTRL-c>
-```
-
 systemctl enable lightningd.service && systemctl start lightningd.service
 tail -f /home/bitcoin/.lightning/bitcoin/cl.log
 ```
@@ -200,7 +198,7 @@ tail -f /home/bitcoin/.lightning/bitcoin/cl.log
 
 ### BITCOIN USER
 
-```
+```console
 su - bitcoin
 git clone https://github.com/Ride-The-Lightning/RTL.git
 cd RTL
@@ -209,7 +207,7 @@ npm install --omit=dev --legacy-peer-deps
 ww RTL-Config.json
 ```
 
-```
+```console
 {
   "port": "3000",
   "defaultNodeIndex": 1,
@@ -245,7 +243,7 @@ ww RTL-Config.json
 
 ### PW 2 in password manager
 
-```
+```console
 lightning-cli createrune
 RUNE="<output from above>"
 echo "LIGHTNING_RUNE=\"${RUNE}\"" >rune.txt
@@ -257,36 +255,16 @@ exit
 
 ### ROOT USER
 
-```
-ww /etc/systemd/system/rtl.service
-```
-
-```
-[Unit]
-Description=Ride The Lightning
-After=bitcoind.service lightningd.service wg-quick@wg0.service
-
-[Service]
-User=bitcoin
-Group=bitcoin
-WorkingDirectory=/home/bitcoin/RTL
-ExecStart=/usr/bin/node rtl
-Type=simple
-
-[Install]
-WantedBy=multi-user.target
-```
-
 ## configure wireguard
 
-```
+```console
 wg genkey | sudo tee /etc/wireguard/private.key
 chmod go= /etc/wireguard/private.key
 cat /etc/wireguard/private.key | wg pubkey | tee /etc/wireguard/public.key
 ww /etc/wireguard/wg0.conf
 ```
 
-```
+```console
 [Interface]
 Address = 10.0.0.1/24
 ListenPort = 51820
@@ -311,7 +289,7 @@ PublicKey = <DESkTOP_PUBLIC_KEY>
 AllowedIPs = 10.0.0.3/32
 ```
 
-```
+```console
 echo "net.ipv4.ip_forward=1" >>/etc/sysctl.conf
 sysctl -p
 
@@ -322,7 +300,7 @@ systemctl restart wg-quick@wg0 && wg show
 
 ## Wireguard Config Arbeitsrechner
 
-```
+```console
 [Interface]
 PrivateKey = qCPM+4IcX7gpgFyBEphTYeW3dJEb++/w4MggKXJNnE8=
 Address = 10.0.0.3/24
@@ -335,7 +313,7 @@ Endpoint = 185.170.58.134:51820
 
 ### Checks mit ping usw.
 
-```
+```console
 systemctl enable rtl.service && systemctl start rtl.service
 journalctl -f
 netstat -tulpn
@@ -347,27 +325,27 @@ netstat -tulpn
 
 # BACKUPS & MAINTENANCE
 
-```
+```console
 ww /etc/cron.hourly/backuptasks
 ```
 
-```
+```console
 #!/bin/sh
 rsync -av /home/bitcoin/.lightning/bitcoin/emergency.recover /home/bitcoin/.lightning/bitcoin/backups/emergency.recover.bak
 rsync -av /home/bitcoin/.lightning/bitcoin/hsm_secret /home/bitcoin/.lightning/bitcoin/backups/hsm_secret.bak
 ```
 
-```
+```console
 chmod 755 /etc/cron.hourly/backuptasks
 
 vi /etc/crontab
 ```
 
-```
+```console
 55 4    * * *   bitcoin lightning-cli backup-compact
 ```
 
-```
+```console
 systemctl restart cron.service
 ```
 
