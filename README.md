@@ -30,8 +30,7 @@ Du solltest nun auf deinem VPS eingeloggt sein.
 
 
 ```console
-echo "PasswordAuthentication no" >>/etc/ssh/sshd_config && systemctl restart ssh.service
-apt update && apt full-upgrade -y && apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil && systemctl enable fail2ban && systemctl enable tor
+apt update && apt full-upgrade -y && apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil && systemctl enable fail2ban && systemctl enable tor && echo "PasswordAuthentication no" >>/etc/ssh/sshd_config
 ```
 
 # Create Bitcoin user and give some permissions
@@ -71,8 +70,8 @@ ssh-keygen -t rsa -b 4096
 ## On Work Station
 
 ```console
-ssh-copy-id bitcoin@france
-ssh bitcoin@france
+ssh-copy-id bitcoin@vps
+ssh bitcoin@vps
 ```
 
 ## Install Bitcoin Core
@@ -96,14 +95,27 @@ mkdir -p .bitcoin .lightning/bitcoin/backups/
 
 BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
 PUBLIC_IP="185.170.58.134"
-echo "daemon=1\nserver=1\nprune=60000\ntxindex=1\nonion=127.0.0.1:9050\nlisten=1\ndeprecatedrpc=create_bdb\nwalletbroadcast=0\nrpcbind=0.0.0.0:8332\nrpcallowip=0.0.0.0/0\nwhitelist=0.0.0.0/0\nrpcuser=bitcoin\nrpcpassword=${BITCOIND_PW}" >>.bitcoin/bitcoin.conf
+tee >>.bitcoin/bitcoin.conf <<EOF
+daemon=1
+server=1
+prune=60000
+txindex=1
+onion=127.0.0.1:9050
+listen=1
+deprecatedrpc=create_bdb
+walletbroadcast=0
+rpcbind=0.0.0.0:8332
+rpcallowip=0.0.0.0/0
+whitelist=0.0.0.0/0
+rpcuser=bitcoin
+rpcpassword=${BITCOIND_PW}
+EOF
 ```
 
 ## Install Core Lightning
 
 ```console
-git clone https://github.com/ElementsProject/lightning.git && cd lightning && git checkout v24.11.1
- && poetry install && ./configure --disable-rust && poetry run make && sudo make install
+git clone https://github.com/ElementsProject/lightning.git && cd lightning && git checkout v24.11.1 && poetry install && ./configure --disable-rust && poetry run make && sudo make install
  ```
 
  Enter bitcoin user PW.
@@ -111,7 +123,24 @@ git clone https://github.com/ElementsProject/lightning.git && cd lightning && gi
 pip3 install --user pyln-client websockets --break-system-packages
 pip3 install --user flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages
 
-echo "network=bitcoin\nlog-file=cl.log\nclnrest-host=0.0.0.0\nclnrest-port=3010\nimportant-plugin=/home/bitcoin/plugins/backup/backup.py\nwallet=sqlite3:///home/bitcoin/.lightning/bitcoin/lightningd.sqlite3:/home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3\nbitcoin-retry-timeout=3600\nproxy=127.0.0.1:9050\nbind-addr=127.0.0.1:9735\nrpc-file-mode=0664\nbitcoin-rpcuser=bitcoin\nbitcoin-rpcport=8332\nbitcoin-rpcconnect=127.0.0.1\nbind-addr=${PUBLIC_IP}:9735\nannounce-addr=${PUBLIC_IP}:9735\nbitcoin-rpcpassword=${BITCOIND_PW}" >>.lightning/config
+tee ~/.lightning/config <<EOF
+network=bitcoin
+log-file=cl.log
+clnrest-host=0.0.0.0
+clnrest-port=3010
+important-plugin=/home/bitcoin/plugins/backup/backup.py
+wallet=sqlite3:///home/bitcoin/.lightning/bitcoin/lightningd.sqlite3:/home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3
+bitcoin-retry-timeout=3600
+proxy=127.0.0.1:9050
+bind-addr=127.0.01:9735
+rpc-file-mode=0664
+bitcoin-rpcuser=bitcoin
+bitcoin-rpcport=8332
+bitcoin-rpcconnect=127.0.0.1
+bind-addr=${PUBLIC_IP}:9735
+announce-addr=${PUBLIC_IP}:9735
+bitcoin-rpcpassword=${BITCOIND_PW}
+EOF
 ```
 
 ### Configure Backup Plugin
