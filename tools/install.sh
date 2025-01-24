@@ -338,7 +338,7 @@ setup_firewall() {
 reboot_system() {
   ask_to_continue "Reboot the system?"
   if [ $CONTINUE -eq 1 ];then
-    sudo reboot
+    sudo shutdown -r now
   fi
 }
 
@@ -421,7 +421,7 @@ rpc-file-mode=0664
 bitcoin-rpcuser=bitcoin
 bitcoin-rpcport=8332
 bitcoin-rpcconnect=127.0.0.1
-bitcoin-rpcpassword=${BITCOIND_PW}
+bitcoin-rpcpassword='${BITCOIND_PW}'
 bind-addr='${PUBLIC_IP}':9735
 announce-addr='${PUBLIC_IP}':9735
 EOF'
