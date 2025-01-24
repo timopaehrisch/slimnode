@@ -312,7 +312,8 @@ install_packages() {
     sudo apt install -y ${EXTRA_PKGS} jq pipx ufw htop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-venv wireguard python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go 
     sudo systemctl enable fail2ban
     sudo systemctl enable tor
-#    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin yes" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
+    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin no" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
+    sudo rm /etc/ssh/sshd_config.d/50-cloud-init.conf
   fi
 }
 
