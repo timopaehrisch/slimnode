@@ -430,9 +430,11 @@ bitcoin-rpcpassword='${BITCOIND_PW}'
 bind-addr='${PUBLIC_IP}':9735
 announce-addr='${PUBLIC_IP}':9735
 EOF'
-#    sudo -u bitcoin sh -c "git clone https://github.com/lightningd/plugins.git ~/plugins && cd ~/plugins/backup && pipx install poetry && pipx ensurepath && . ~/.bashrc && poetry install && poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp"
-#    sudo sh -c "tee /etc/systemd/system/lightningd.service <<EOF
-#[Unit]
+    if [ "$VERSION_ID" == "$VER24" ]; then
+      sudo -u bitcoin sh -c "git clone https://github.com/lightningd/plugins.git ~/plugins && cd ~/plugins/backup && pipx install poetry && pipx ensurepath && . ~/.bashrc && poetry install && poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp"
+    fi
+    sudo sh -c "tee /etc/systemd/system/lightningd.service <<EOF
+[Unit]
 #Description=c-lightning daemon on mainnet
 #After=bitcoind.service
 #
