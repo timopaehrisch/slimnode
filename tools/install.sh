@@ -546,7 +546,7 @@ EOF"
 
 configure_wireguard() {
   ask_to_continue "Configure Wireguard?"
-#  if [ $? -eq 0 ]; then
+#  if [ $CONTINUE -eq 1 ];then
 #  fi
 }
 
