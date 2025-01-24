@@ -303,7 +303,7 @@ install_packages() {
   if [ $CONTINUE -eq 1 ];then
     sudo apt update 
     sudo apt full-upgrade -y 
-    sudo apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go 
+    sudo apt install -y jq ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go 
     sudo systemctl enable fail2ban
     sudo systemctl enable tor
     sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin yes" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
@@ -405,7 +405,12 @@ install_core_lightning() {
   ask_to_continue "Install c-lightning?"
   if [ $CONTINUE -eq 1 ];then
     sudo -u bitcoin sh -c "mkdir -p ~/.lightning/bitcoin/backups/"
-    sudo -u bitcoin sh -c "git clone https://github.com/ElementsProject/lightning.git ~/lightning && cd ~/lightning && git checkout v24.11.1 && poetry install && ./configure --disable-rust && poetry run make -j`nproc --all` && sudo make install"
+    sudo -u bitcoin sh -c "git clone https://github.com/ElementsProject/lightning.git ~/lightning && cd ~/lightning && git checkout v24.11.1"
+    if [ $VERSION_ID -eq $VER24 ];then
+      sudo -u bitcoin.sh -c "poetry install && ./configure --disable-rust && poetry run make -j`nproc --all` && sudo make install"
+    else
+      sudo -u bitcoin.sh -c "./configure --disable-rust && make -j`nproc --all` && sudo make install"
+    fi
     sudo -u bitcoin sh -c "pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages"
     sudo -u bitcoin sh -c 'tee ~/.lightning/config <<EOF
 network=bitcoin
@@ -611,6 +616,16 @@ main() {
   PUBLIC_IP=`wget -qO- https://ipecho.net/plain ; echo`
   BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
   RTL_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
+  source  /etc/os-release
+  VER24="24.04"
+  VER22="22.04"
+  VER20="20.04"
+
+  if [ $VERSION_ID -ne $VER22 || $VERSION_ID -ne $VER20 || $VERSION_ID -ne $VER24 ];then
+    fmt_error 'Unsupported Ubuntu version'
+    exit 1
+  fi
+
   # Parse arguments
   while [ $# -gt 0 ]; do
     case $1 in
