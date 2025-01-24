@@ -168,8 +168,6 @@ bitcoin.mainnet=true
 bitcoin.node=bitcoind
 EOF
 
-./lnd/lncli create
-
 sudo su -
 ```
 
@@ -260,10 +258,21 @@ tail -f /home/bitcoin/.bitcoin/debug.log
 <CTRL-c>
 ```
 
+### Start lightningd and check log file
+
 ```
 systemctl enable lightningd.service && systemctl start lightningd.service
 tail -f /home/bitcoin/.lightning/bitcoin/cl.log
 <CTRL-c>
+```
+
+### Start lnd and check log file
+
+```
+systemctl enable lnd.service && systemctl start lnd.service
+tail -f /home/bitcoin/.lnd/bitcoin/cl.log
+<CTRL-c>
+su -c "~/lnd/lncli create" bitcoin
 ```
 
 ### Bitcoin & Lightning running
