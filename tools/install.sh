@@ -549,9 +549,9 @@ EOF"
 
 configure_wireguard() {
   ask_to_continue "Configure Wireguard?"
-  if [ $CONTINUE -eq 1 ];then
+#  if [ $CONTINUE -eq 1 ];then
   
-  fi
+#  fi
 }
 
 setup_install() {
