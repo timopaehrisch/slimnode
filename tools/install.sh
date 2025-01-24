@@ -573,6 +573,9 @@ print_summary() {
   if [ "$RTL_INSTALLED" = true ] ; then
     echo 'rtl will be started.'
   fi
+  if [ "$WIREGUARD_INSTALLED" = true ] ; then
+    echo 'wireguard will be started.'
+  fi
 }
 
 setup_install() {
