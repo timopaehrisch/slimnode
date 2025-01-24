@@ -28,7 +28,7 @@ You should now be logged into your VPS as root.
 
 
 ```console
-apt update && apt full-upgrade -y && apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go && systemctl enable fail2ban && systemctl enable tor && echo "PasswordAuthentication no" >>/etc/ssh/sshd_config
+apt update && apt full-upgrade -y && apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go && systemctl enable fail2ban && systemctl enable tor && echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin no" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
 ```
 
 # Create Bitcoin user and give some permissions
@@ -119,8 +119,7 @@ git clone https://github.com/ElementsProject/lightning.git && cd lightning && gi
 
  Enter bitcoin user PW.
  ```console
-pip3 install --user pyln-client websockets --break-system-packages
-pip3 install --user flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages
+pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages
 
 tee ~/.lightning/config <<EOF
 network=bitcoin
