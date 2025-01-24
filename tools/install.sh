@@ -336,14 +336,14 @@ install_bitcoin_core() {
   sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -P ~"
   sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS -P ~"
   sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS.asc -P ~"
-  sudo -u bitcoin sh -c "sha256sum --ignore-missing --check SHA256SUMS"
+  sudo -u bitcoin sh -c "cd && sha256sum --ignore-missing --check ~/SHA256SUMS"
   sudo -u bitcoin sh -c 'curl -s "https://api.github.com/repositories/355107265/contents/builder-keys" | grep download_url | grep -oE "https://[a-zA-Z0-9./-]+" | while read url; do curl -s "$url" | gpg --import; done'
-  sudo -u bitcoin sh -c "gpg --verify SHA256SUMS.asc"
+  sudo -u bitcoin sh -c "gpg --verify ~/SHA256SUMS.asc"
   echo "${FMT_YELLOW}Check validity of signatures.${FMT_RESET}"
   ask_to_continue "Signatures valid?"
-  sudo -u bitcoin sh -c "tar -xvf bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -C ~"
-  sudo -u bitcoin sh -c "sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-${VERSION}/bin/*"
-  sudo -u bitcoin sh -c "mkdir -p .bitcoin .lightning/bitcoin/backups/ .lnd"
+  sudo -u bitcoin sh -c "tar -xvf ~/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -C ~"
+  sudo -u bitcoin sh -c "sudo install -m 0755 -o root -g root -t /usr/local/bin ~/bitcoin-${VERSION}/bin/*"  
+  sudo -u bitcoin sh -c "mkdir -p ~/.bitcoin"
   sudo -u bitcoin sh -c "tee >~/.bitcoin/bitcoin2.conf <<EOF
 daemon=1
 server=1
@@ -403,7 +403,8 @@ EOF"
 
 install_core_lightning() {
   ask_to_continue "Install c-lightning?"
-  sudo -u bitcoin sh -c "git clone https://github.com/ElementsProject/lightning.git ~/lightning && cd lightning && git checkout v24.11.1 && poetry install && ./configure --disable-rust && poetry run make && sudo make install"
+  sudo -u bitcoin sh -c "mkdir -p ~/.lightning/bitcoin/backups/"
+  sudo -u bitcoin sh -c "git clone https://github.com/ElementsProject/lightning.git ~/lightning && cd ~/lightning && git checkout v24.11.1 && poetry install && ./configure --disable-rust && poetry run make && sudo make install"
   sudo -u bitcoin sh -c "pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages"
   sudo -u bitcoin sh -c "tee ~/.lightning/config <<EOF
 network=bitcoin
@@ -451,8 +452,9 @@ EOF"
 install_lnd() {
   ask_to_continue "Install lnd?"
   LND_VERSION="v0.18.4-beta"
+  sudo -u bitcoin sh -c "mkdir ~/.lnd"
   sudo -u bitcoin sh -c "wget https://github.com/lightningnetwork/lnd/releases/download/${LND_VERSION}/lnd-linux-386-${LND_VERSION}.tar.gz -P ~"
-  sudo -u bitcoin sh -c "tar -xvf lnd-linux-386-${LND_VERSION}.tar.gz -C ~"
+  sudo -u bitcoin sh -c "tar -xvf ~/lnd-linux-386-${LND_VERSION}.tar.gz -C ~"
   sudo -u bitcoin sh -c "ln -s ~/lnd-linux-386-${LND_VERSION} ~/lnd"
   sudo -u bitcoin sh -c "tee  ~/.lnd/lnd.conf <<EOF
 [Application Options]
@@ -483,8 +485,8 @@ EOF"
 
 install_rtl() {
   ask_to_continue "Install Ride The Lightning?"
-  sudo -u bitcoin sh -c "git clone https://github.com/Ride-The-Lightning/RTL.git && cd RTL && npm install --omit=dev --legacy-peer-deps"
-  sudo -u bitcoin sh -c "tee RTL-Config.json <<EOF
+sudo -u bitcoin sh -c "git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
+sudo -u bitcoin sh -c "tee RTL-Config.json <<EOF
 {
   "port": "3000",
   "defaultNodeIndex": 1,
@@ -550,6 +552,7 @@ setup_install() {
     create_ssh_keys
     install_bitcoin_core
     install_core_lightning
+    install_lnd
     install_rtl
     configure_wireguard
 #    reboot_system
