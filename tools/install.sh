@@ -308,7 +308,6 @@ install_packages() {
     sudo systemctl enable tor
     sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin yes" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
   fi
-  echo "${FMT_YELLOW}END install_packages()${FMT_RESET}"
 }
 
 create_bitcoin_user() {
@@ -399,6 +398,7 @@ WantedBy=multi-user.target
 EOF"
   fi
   sudo systemctl enable bitcoind.service
+  BITCOIND_INSTALLED=true
 }
 
 install_core_lightning() {
@@ -450,6 +450,7 @@ WantedBy=multi-user.target
 EOF"
   fi
   sudo systemctl enable lightningd.service
+  LIGHTNINGD_INSTALLED=true
 }
 
 install_lnd() {
@@ -487,6 +488,7 @@ WantedBy=multi-user.target
 EOF"
   fi
   sudo systemctl enable lnd.service
+  LND_INSTALLED=true
 }
 
 install_rtl() {
@@ -544,6 +546,7 @@ EOF"
     RUNE=`sudo -u bitcoin sh -c "lightning-cli createrune | jq .rune"`
     sudo -u bitcoin sh -c "echo LIGHTNING_RUNE='${RUNE}' >~/RTL/rune.txt"
     sudo systemctl enable rtl.service
+    RTL_INSTALLED=true
   fi
 }
 
@@ -551,6 +554,25 @@ configure_wireguard() {
   ask_to_continue "Configure Wireguard?"
 #  if [ $CONTINUE -eq 1 ];then
 #  fi
+  WIREGUARD_INSTALLED=true
+}
+
+
+print_summary() {
+  echo "${FMT_GREEN}Installation done.${FMT_RESET}"
+  echo "${FMT_YELLOW}Summary:${FMT_RESET}"
+  if [ "$BITCOIND_INSTALLED" = true ] ; then
+    echo 'bitcoind will be started.'
+  fi
+  if [ "$LIGHTNINGD_INSTALLED" = true ] ; then
+    echo 'lightningd will be started.'
+  fi
+  if [ "$LND_INSTALLED" = true ] ; then
+    echo 'lnd will be started.'
+  fi
+  if [ "$RTL_INSTALLED" = true ] ; then
+    echo 'rtl will be started.'
+  fi
 }
 
 setup_install() {
@@ -564,6 +586,7 @@ setup_install() {
     install_core_lightning
     install_lnd
     install_rtl
+    print_summary
 #    configure_wireguard
 #    reboot_system
 
