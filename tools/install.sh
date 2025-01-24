@@ -307,7 +307,7 @@ install_packages() {
 }
 
 create_bitcoin_user() {
-  ask_to_continue("Create a 'bitcoin' system user?")
+  ask_to_continue "Create a 'bitcoin' system user?"
   sudo useradd -m bitcoin -s /bin/bash
   sudo adduser bitcoin sudo
   sudo usermod -a -G debian-tor bitcoin
@@ -316,7 +316,7 @@ create_bitcoin_user() {
 }
 
 setup_firewall() {
-  ask_to_continue("Setup firewall?")
+  ask_to_continue "Setup firewall?"
   sudo ufw default deny incoming 
   sudo ufw default allow outgoing
   sudo ufw allow 51820/udp 
@@ -328,18 +328,18 @@ setup_firewall() {
 }
 
 reboot_system() {
-  ask_to_continue("Reboot the system?")
+  ask_to_continue "Reboot the system?"
   sudo reboot
 }
 
 create_ssh_keys() {
-  ask_to_continue("Create SSH keys?")
+  ask_to_continue "Create SSH keys?"
   sudo -u bitcoin sh -c "ssh-keygen -t rsa -b 4096"
 }
 
 install_bitcoin_core() {
   VERSION="27.0"
-  ask_to_continue("Install Bitcoin Core ${VERSION}?")
+  ask_to_continue "Install Bitcoin Core ${VERSION}?"
   sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -P ~"
   sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS -P ~"
   sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS.asc -P ~"
@@ -347,7 +347,7 @@ install_bitcoin_core() {
   sudo -u bitcoin sh -c 'curl -s "https://api.github.com/repositories/355107265/contents/builder-keys" | grep download_url | grep -oE "https://[a-zA-Z0-9./-]+" | while read url; do curl -s "$url" | gpg --import; done'
   sudo -u bitcoin sh -c "gpg --verify SHA256SUMS.asc"
   echo "${FMT_YELLOW}Check validity of signatures.${FMT_RESET}"
-  ask_to_continue("Signatures valid?")
+  ask_to_continue "Signatures valid?"
   sudo -u bitcoin sh -c "tar -xvf bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -C ~"
   sudo -u bitcoin sh -c "sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-${VERSION}/bin/*"
   sudo -u bitcoin sh -c "mkdir -p .bitcoin .lightning/bitcoin/backups/ .lnd"
@@ -409,7 +409,7 @@ EOF"
 }
 
 install_core_lightning() {
-  ask_to_continue("Install c-lightning?")
+  ask_to_continue "Install c-lightning?"
   sudo -u bitcoin sh -c "git clone https://github.com/ElementsProject/lightning.git ~/lightning && cd lightning && git checkout v24.11.1 && poetry install && ./configure --disable-rust && poetry run make && sudo make install"
   sudo -u bitcoin sh -c "pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages"
   sudo -u bitcoin sh -c "tee ~/.lightning/config <<EOF
@@ -456,7 +456,7 @@ EOF"
 }
 
 install_lnd() {
-  ask_to_continue("Install lnd?")
+  ask_to_continue "Install lnd?"
   LND_VERSION="v0.18.4-beta"
   sudo -u bitcoin sh -c "wget https://github.com/lightningnetwork/lnd/releases/download/${LND_VERSION}/lnd-linux-386-${LND_VERSION}.tar.gz -P ~"
   sudo -u bitcoin sh -c "tar -xvf lnd-linux-386-${LND_VERSION}.tar.gz -C ~"
@@ -489,7 +489,7 @@ EOF"
 }
 
 install_rtl() {
-  ask_to_continue("Install Ride The Lightning?")
+  ask_to_continue "Install Ride The Lightning?"
   sudo -u bitcoin sh -c "git clone https://github.com/Ride-The-Lightning/RTL.git && cd RTL && npm install --omit=dev --legacy-peer-deps"
   sudo -u bitcoin sh -c "tee RTL-Config.json <<EOF
 {
@@ -545,7 +545,7 @@ EOF"
 }
 
 configure_wireguard() {
-  ask_to_continue("Configure Wireguard?")
+  ask_to_continue "Configure Wireguard?"
 }
 
 setup_install() {
@@ -554,12 +554,13 @@ setup_install() {
     install_packages
     create_bitcoin_user
     setup_firewall
-#    reboot_system
     create_ssh_keys
     install_bitcoin_core
     install_core_lightning
     install_rtl
     configure_wireguard
+#    reboot_system
+
   else
     fmt_error 'user cannot run sudo'
     exit 1
