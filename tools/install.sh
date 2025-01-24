@@ -284,67 +284,78 @@ ask_to_continue() {
   read -r opt
   case $opt in
     y*|Y*|"") ;;
-    n*|N*) echo "Exiting."; exit ;;
+    n*|N*) echo "Skipping."; return 2;;
     *) echo "Invalid choice. Exiting."; exit ;;
   esac
 }
 
 install_packages() {
   ask_to_continue 'Install software packages and set sshd parameters?'
-  sudo apt update 
-  sudo apt full-upgrade -y 
-  sudo apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go 
-  sudo systemctl enable fail2ban
-  sudo systemctl enable tor
-  sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin no" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
+  if [ $? -eq 0 ]; then
+    sudo apt update 
+    sudo apt full-upgrade -y 
+    sudo apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go 
+    sudo systemctl enable fail2ban
+    sudo systemctl enable tor
+    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin no" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
+  fi
 }
 
 create_bitcoin_user() {
   ask_to_continue "Create a 'bitcoin' system user?"
-  sudo useradd -m bitcoin -s /bin/bash
-  sudo adduser bitcoin sudo
-  sudo usermod -a -G debian-tor bitcoin
-  echo "${FMT_YELLOW}Set a password for the 'bitcoin' system user and write it down/store it in a password manager.${FMT_RESET}"
-  sudo passwd bitcoin
+  if [ $? -eq 0 ]; then
+    sudo useradd -m bitcoin -s /bin/bash
+    sudo adduser bitcoin sudo
+    sudo usermod -a -G debian-tor bitcoin
+    echo "${FMT_YELLOW}Set a password for the 'bitcoin' system user and write it down/store it in a password manager.${FMT_RESET}"
+    sudo passwd bitcoin
+  fi
 }
 
 setup_firewall() {
   ask_to_continue "Setup firewall?"
-  sudo ufw default deny incoming 
-  sudo ufw default allow outgoing
-  sudo ufw allow 51820/udp 
-  sudo ufw allow 22,9735,9736/tcp
-  sudo ufw allow proto tcp from 10.0.0.0/24 to 10.0.0.0/24 port 3000,8332,50002
-  sudo ufw logging off 
-  sudo ufw enable
-  sudo systemctl enable ufw
+  if [ $? -eq 0 ]; then
+    sudo ufw default deny incoming 
+    sudo ufw default allow outgoing
+    sudo ufw allow 51820/udp 
+    sudo ufw allow 22,9735,9736/tcp
+    sudo ufw allow proto tcp from 10.0.0.0/24 to 10.0.0.0/24 port 3000,8332,50002
+    sudo ufw logging off 
+    sudo ufw enable
+    sudo systemctl enable ufw
+  fi
 }
 
 reboot_system() {
   ask_to_continue "Reboot the system?"
-  sudo reboot
+  if [ $? -eq 0 ]; then
+    sudo reboot
+  fi
 }
 
 create_ssh_keys() {
   ask_to_continue "Create SSH keys?"
-  sudo -u bitcoin sh -c "ssh-keygen -t rsa -b 4096"
+  if [ $? -eq 0 ]; then
+    sudo -u bitcoin sh -c "ssh-keygen -t rsa -b 4096"
+  fi
 }
 
 install_bitcoin_core() {
   VERSION="27.0"
   ask_to_continue "Install Bitcoin Core ${VERSION}?"
-  sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -P ~"
-  sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS -P ~"
-  sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS.asc -P ~"
-  sudo -u bitcoin sh -c "cd && sha256sum --ignore-missing --check ~/SHA256SUMS"
-  sudo -u bitcoin sh -c 'curl -s "https://api.github.com/repositories/355107265/contents/builder-keys" | grep download_url | grep -oE "https://[a-zA-Z0-9./-]+" | while read url; do curl -s "$url" | gpg --import; done'
-  sudo -u bitcoin sh -c "gpg --verify ~/SHA256SUMS.asc"
-  echo "${FMT_YELLOW}Check validity of signatures.${FMT_RESET}"
-  ask_to_continue "Signatures valid?"
-  sudo -u bitcoin sh -c "tar -xvf ~/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -C ~"
-  sudo -u bitcoin sh -c "sudo install -m 0755 -o root -g root -t /usr/local/bin ~/bitcoin-${VERSION}/bin/*"  
-  sudo -u bitcoin sh -c "mkdir -p ~/.bitcoin"
-  sudo -u bitcoin sh -c "tee >~/.bitcoin/bitcoin2.conf <<EOF
+  if [ $? -eq 0 ]; then
+    sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -P ~"
+    sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS -P ~"
+    sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS.asc -P ~"
+    sudo -u bitcoin sh -c "cd && sha256sum --ignore-missing --check ~/SHA256SUMS"
+    sudo -u bitcoin sh -c 'curl -s "https://api.github.com/repositories/355107265/contents/builder-keys" | grep download_url | grep -oE "https://[a-zA-Z0-9./-]+" | while read url; do curl -s "$url" | gpg --import; done'
+    sudo -u bitcoin sh -c "gpg --verify ~/SHA256SUMS.asc"
+    echo "${FMT_YELLOW}Check validity of signatures.${FMT_RESET}"
+    ask_to_continue "Signatures valid?"
+    sudo -u bitcoin sh -c "tar -xvf ~/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -C ~"
+    sudo -u bitcoin sh -c "sudo install -m 0755 -o root -g root -t /usr/local/bin ~/bitcoin-${VERSION}/bin/*"  
+    sudo -u bitcoin sh -c "mkdir -p ~/.bitcoin"
+    sudo -u bitcoin sh -c "tee >~/.bitcoin/bitcoin2.conf <<EOF
 daemon=1
 server=1
 prune=60000
@@ -360,7 +371,7 @@ rpcpassword=${BITCOIND_PW}
 zmqpubrawblock=tcp://127.0.0.1:28332
 zmqpubrawtx=tcp://127.0.0.1:28333
 EOF"
-  sudo sh -c "tee  /etc/systemd/system/bitcoind.service <<EOF
+    sudo sh -c "tee  /etc/systemd/system/bitcoind.service <<EOF
 [Unit]
 Description=Bitcoin daemon
 
@@ -375,38 +386,17 @@ TimeoutSec=120
 
 [Install]
 WantedBy=multi-user.target
-EOF
-
-tee /etc/systemd/system/lightningd.service <<EOF
-[Unit]
-Description=c-lightning daemon on mainnet
-After=bitcoind.service
-
-[Service]
-ExecStart=/usr/local/bin/lightningd --conf=/home/bitcoin/.lightning/config  --pid-file=/run/lightningd/lightningd.pid
-RuntimeDirectory=lightningd
-User=bitcoin
-Group=bitcoin
-Type=simple
-PIDFile=/run/lightningd/lightningd.pid
-TimeoutSec=60
-PrivateTmp=true
-ProtectSystem=full
-NoNewPrivileges=true
-PrivateDevices=true
-MemoryDenyWriteExecute=true
-
-[Install]
-WantedBy=multi-user.target
 EOF"
+  fi
 }
 
 install_core_lightning() {
   ask_to_continue "Install c-lightning?"
-  sudo -u bitcoin sh -c "mkdir -p ~/.lightning/bitcoin/backups/"
-  sudo -u bitcoin sh -c "git clone https://github.com/ElementsProject/lightning.git ~/lightning && cd ~/lightning && git checkout v24.11.1 && poetry install && ./configure --disable-rust && poetry run make && sudo make install"
-  sudo -u bitcoin sh -c "pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages"
-  sudo -u bitcoin sh -c "tee ~/.lightning/config <<EOF
+  if [ $? -eq 0 ]; then
+    sudo -u bitcoin sh -c "mkdir -p ~/.lightning/bitcoin/backups/"
+    sudo -u bitcoin sh -c "git clone https://github.com/ElementsProject/lightning.git ~/lightning && cd ~/lightning && git checkout v24.11.1 && poetry install && ./configure --disable-rust && poetry run make && sudo make install"
+    sudo -u bitcoin sh -c "pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages"
+    sudo -u bitcoin sh -c "tee ~/.lightning/config <<EOF
 network=bitcoin
 log-file=cl.log
 clnrest-host=0.0.0.0
@@ -424,8 +414,8 @@ bitcoin-rpcpassword=${BITCOIND_PW}
 bind-addr=${PUBLIC_IP}:9735
 announce-addr=${PUBLIC_IP}:9735
 EOF"
-  sudo -u bitcoin sh -c "git clone https://github.com/lightningd/plugins.git ~/plugins && cd plugins/backup && poetry install && poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp"
-  sudo sh -c "tee /etc/systemd/system/lightningd.service <<EOF
+    sudo -u bitcoin sh -c "git clone https://github.com/lightningd/plugins.git ~/plugins && cd ~/plugins/backup && poetry install && poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp"
+    sudo sh -c "tee /etc/systemd/system/lightningd.service <<EOF
 [Unit]
 Description=c-lightning daemon on mainnet
 After=bitcoind.service
@@ -447,16 +437,18 @@ MemoryDenyWriteExecute=true
 [Install]
 WantedBy=multi-user.target
 EOF"
+  fi
 }
 
 install_lnd() {
   ask_to_continue "Install lnd?"
-  LND_VERSION="v0.18.4-beta"
-  sudo -u bitcoin sh -c "mkdir ~/.lnd"
-  sudo -u bitcoin sh -c "wget https://github.com/lightningnetwork/lnd/releases/download/${LND_VERSION}/lnd-linux-386-${LND_VERSION}.tar.gz -P ~"
-  sudo -u bitcoin sh -c "tar -xvf ~/lnd-linux-386-${LND_VERSION}.tar.gz -C ~"
-  sudo -u bitcoin sh -c "ln -s ~/lnd-linux-386-${LND_VERSION} ~/lnd"
-  sudo -u bitcoin sh -c "tee  ~/.lnd/lnd.conf <<EOF
+  if [ $? -eq 0 ]; then
+    LND_VERSION="v0.18.4-beta"
+    sudo -u bitcoin sh -c "mkdir ~/.lnd"
+    sudo -u bitcoin sh -c "wget https://github.com/lightningnetwork/lnd/releases/download/${LND_VERSION}/lnd-linux-386-${LND_VERSION}.tar.gz -P ~"
+    sudo -u bitcoin sh -c "tar -xvf ~/lnd-linux-386-${LND_VERSION}.tar.gz -C ~"
+    sudo -u bitcoin sh -c "ln -s ~/lnd-linux-386-${LND_VERSION} ~/lnd"
+    sudo -u bitcoin sh -c "tee  ~/.lnd/lnd.conf <<EOF
 [Application Options]
 listen=${PUBLIC_IP}:9736
 externalip=${PUBLIC_IP}:9736
@@ -466,7 +458,7 @@ debuglevel=debug
 bitcoin.mainnet=true
 bitcoin.node=bitcoind
 EOF"
-  sudo sh -c "tee  /etc/systemd/system/lnd.service <<EOF
+    sudo sh -c "tee  /etc/systemd/system/lnd.service <<EOF
 [Unit]
 Description=lnd
 
@@ -481,12 +473,14 @@ TimeoutSec=60
 [Install]
 WantedBy=multi-user.target
 EOF"
+  fi
 }
 
 install_rtl() {
   ask_to_continue "Install Ride The Lightning?"
-sudo -u bitcoin sh -c "git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
-sudo -u bitcoin sh -c "tee RTL-Config.json <<EOF
+  if [ $? -eq 0 ]; then
+    sudo -u bitcoin sh -c "git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
+    sudo -u bitcoin sh -c "tee RTL-Config.json <<EOF
 {
   "port": "3000",
   "defaultNodeIndex": 1,
@@ -519,7 +513,7 @@ sudo -u bitcoin sh -c "tee RTL-Config.json <<EOF
   "multiPass": "${RTL_PW}"
 }
 EOF"
-  sudo sh -c "tee /etc/systemd/system/rtl.service <<EOF
+    sudo sh -c "tee /etc/systemd/system/rtl.service <<EOF
 [Unit]
 Description=Ride The Lightning
 After=bitcoind.service lightningd.service wg-quick@wg0.service
@@ -534,13 +528,16 @@ Type=simple
 [Install]
 WantedBy=multi-user.target
 EOF"
-  RUNE=`sudo -u bitcoin sh -c "lightning-cli createrune | jq .rune"`
-  sudo -u bitcoin sh -c "echo LIGHTNING_RUNE='${RUNE}' >~/RTL/rune2.txt"
-  sudo systemctl enable rtl.service && sudo systemctl start rtl.service
+    RUNE=`sudo -u bitcoin sh -c "lightning-cli createrune | jq .rune"`
+    sudo -u bitcoin sh -c "echo LIGHTNING_RUNE='${RUNE}' >~/RTL/rune2.txt"
+    sudo systemctl enable rtl.service && sudo systemctl start rtl.service
+  fi
 }
 
 configure_wireguard() {
   ask_to_continue "Configure Wireguard?"
+#  if [ $? -eq 0 ]; then
+#  fi
 }
 
 setup_install() {
