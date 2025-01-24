@@ -430,9 +430,42 @@ bitcoin-rpcpassword='${BITCOIND_PW}'
 bind-addr='${PUBLIC_IP}':9735
 announce-addr='${PUBLIC_IP}':9735
 EOF'
-    if [ "$VERSION_ID" == "$VER24" ]; then
-      sudo -u bitcoin sh -c "git clone https://github.com/lightningd/plugins.git ~/plugins && cd ~/plugins/backup && pipx install poetry && pipx ensurepath && . ~/.bashrc && poetry install && poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp"
+    sudo -u bitcoin sh -c "git clone https://github.com/lightningd/plugins.git ~/plugins"
+    if [ "$VERSION_ID" == "$VER22" ]; then
+      sudo apt-remove -y python3-poetry
+      sudo -u bitcoin sh -c "cd ~/plugins/backup && pipx install poetry && pipx ensurepath"
+      sudo -u bitcoin sh -c 'tee ~/plugins/backup/pyproject.toml <<EOF
+[project]
+name = "cln-backup"
+version = "0.1.0"
+description = "Keep your Core-Lightning node save by backing it up, in real-time (allows recovering without channel closures)."
+
+[tool.poetry]
+authors = ["Christian Decker <decker@blockstream.com>"]
+packages = [
+    { include = "*.py" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pyln-client = "^23.11"
+click = "^8.0.4"
+psutil = "^5.9.4"
+flask = "^2.2"
+werkzeug = "<4"
+
+[tool.poetry.group.dev.dependencies]
+pyln-testing = "^23.11"
+flaky = "^3.7.0"
+pytest-timeout = "^2.2.0"
+pytest-xdist = "^3.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+EOF'
     fi
+    sudo -u bitcoin sh -c "cd ~/plugins/backup && /home/bitcoin/.local/bin/poetry install && /home/bitcoin/.local/bin/poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp"
     sudo sh -c "tee /etc/systemd/system/lightningd.service <<EOF
 [Unit]
 #Description=c-lightning daemon on mainnet
