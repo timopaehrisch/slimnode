@@ -364,7 +364,7 @@ install_bitcoin_core() {
     sudo -u bitcoin sh -c "tar -xvf ~/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -C ~"
     sudo -u bitcoin sh -c "sudo install -m 0755 -o root -g root -t /usr/local/bin ~/bitcoin-${VERSION}/bin/*"  
     sudo -u bitcoin sh -c "mkdir -p ~/.bitcoin"
-    sudo -u bitcoin sh -c "tee >~/.bitcoin/bitcoin2.conf <<EOF
+    sudo -u bitcoin sh -c "tee >~/.bitcoin/bitcoin.conf <<EOF
 daemon=1
 server=1
 prune=60000
@@ -407,7 +407,7 @@ install_core_lightning() {
     sudo -u bitcoin sh -c "mkdir -p ~/.lightning/bitcoin/backups/"
     sudo -u bitcoin sh -c "git clone https://github.com/ElementsProject/lightning.git ~/lightning && cd ~/lightning && git checkout v24.11.1 && poetry install && ./configure --disable-rust && poetry run make && sudo make install"
     sudo -u bitcoin sh -c "pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages"
-    sudo -u bitcoin sh -c "tee ~/.lightning/config <<EOF
+    sudo -u bitcoin sh -c 'tee ~/.lightning/config <<EOF
 network=bitcoin
 log-file=cl.log
 clnrest-host=0.0.0.0
@@ -422,9 +422,9 @@ bitcoin-rpcuser=bitcoin
 bitcoin-rpcport=8332
 bitcoin-rpcconnect=127.0.0.1
 bitcoin-rpcpassword=${BITCOIND_PW}
-bind-addr=${PUBLIC_IP}:9735
-announce-addr=${PUBLIC_IP}:9735
-EOF"
+bind-addr='${PUBLIC_IP}':9735
+announce-addr='${PUBLIC_IP}':9735
+EOF'
     sudo -u bitcoin sh -c "git clone https://github.com/lightningd/plugins.git ~/plugins && cd ~/plugins/backup && poetry install && poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp"
     sudo sh -c "tee /etc/systemd/system/lightningd.service <<EOF
 [Unit]
@@ -449,6 +449,9 @@ MemoryDenyWriteExecute=true
 WantedBy=multi-user.target
 EOF"
   fi
+  sudo mkdir -p /run/lightningd/
+  sudo chown bitcoin:bitcoin /run/lightningd/
+  sudo chmod 755 /run/lightningd/
   sudo systemctl enable lightningd.service
   LIGHTNINGD_INSTALLED=true
 }
@@ -461,16 +464,16 @@ install_lnd() {
     sudo -u bitcoin sh -c "wget https://github.com/lightningnetwork/lnd/releases/download/${LND_VERSION}/lnd-linux-386-${LND_VERSION}.tar.gz -P ~"
     sudo -u bitcoin sh -c "tar -xvf ~/lnd-linux-386-${LND_VERSION}.tar.gz -C ~"
     sudo -u bitcoin sh -c "ln -s ~/lnd-linux-386-${LND_VERSION} ~/lnd"
-    sudo -u bitcoin sh -c "tee  ~/.lnd/lnd.conf <<EOF
+    sudo -u bitcoin sh -c 'tee  ~/.lnd/lnd.conf <<EOF
 [Application Options]
-listen=${PUBLIC_IP}:9736
-externalip=${PUBLIC_IP}:9736
+listen='${PUBLIC_IP}':9736
+externalip='${PUBLIC_IP}':9736
 debuglevel=debug
 
 [Bitcoin]
 bitcoin.mainnet=true
 bitcoin.node=bitcoind
-EOF"
+EOF'
     sudo sh -c "tee  /etc/systemd/system/lnd.service <<EOF
 [Unit]
 Description=lnd
@@ -478,8 +481,9 @@ Description=lnd
 [Service]
 User=bitcoin
 Group=bitcoin
-Type=forking
-ExecStart=/home/bitcoin/lnd/lnd
+Type=simple
+ExecStart=/home/bitcoin/lnd/lnd --externalip=${PUBLIC_IP}
+PIDFile=/home/bitcoin/.lnd/lnd.pid
 KillMode=process
 TimeoutSec=60
 
@@ -488,6 +492,11 @@ WantedBy=multi-user.target
 EOF"
   fi
   sudo systemctl enable lnd.service
+  sudo -u bitcoin sh -c 'tee >>~/.profile <<EOF 
+# set PATH to include lnd binaries
+if [ -d "$HOME/lnd" ] ; then
+    PATH="$HOME/lnd:$PATH"
+fi'
   LND_INSTALLED=true
 }
 
@@ -599,7 +608,7 @@ setup_install() {
   fi
 }
 main() {
-  PUBLIC_IP=`dig +short txt ch whoami.cloudflare @1.0.0.1`
+  PUBLIC_IP=`wget -qO- https://ipecho.net/plain ; echo`
   BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
   RTL_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
   # Parse arguments
