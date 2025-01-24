@@ -616,12 +616,12 @@ main() {
   PUBLIC_IP=`wget -qO- https://ipecho.net/plain ; echo`
   BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
   RTL_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
-  source  /etc/os-release
+  . /etc/os-release
   VER24="24.04"
   VER22="22.04"
   VER20="20.04"
 
-  if [ $VERSION_ID -ne $VER22 || $VERSION_ID -ne $VER20 || $VERSION_ID -ne $VER24 ];then
+  if [[ $VERSION_ID -ne $VER22 || $VERSION_ID -ne $VER20 || $VERSION_ID -ne $VER24 ]];then
     fmt_error 'Unsupported Ubuntu version'
     exit 1
   fi
