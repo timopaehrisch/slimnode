@@ -415,9 +415,12 @@ install_core_lightning() {
     if [ "$VERSION_ID" == "$VER24" ]; then
       sudo -u bitcoin sh -c "cd ~/lightning && poetry install && ./configure --disable-rust && poetry run make -j`nproc --all` && sudo make install"
     else
-      sudo -u bitcoin sh -c "cd ~/lightning && ./configure && make -j`nproc --all` && sudo make install"
+      sudo -u bitcoin sh -c "cd ~/lightning && ./configure && make -j`nproc --all` ; sudo make install"
     fi
-    sudo -u bitcoin sh -c "pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages"
+    if [[ "$VERSION_ID" == "$VER22" || "$VERSION_ID" == "$VER24" ]]; then
+      PIP_OPTIONS="--break-system-packages"
+    fi
+    sudo -u bitcoin sh -c "pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket ${PIP_OPTIONS}"
     sudo -u bitcoin sh -c 'tee ~/.lightning/config <<EOF
 network=bitcoin
 log-file=cl.log
@@ -437,8 +440,8 @@ bind-addr='${PUBLIC_IP}':9735
 announce-addr='${PUBLIC_IP}':9735
 EOF'
     sudo -u bitcoin sh -c "git clone https://github.com/lightningd/plugins.git ~/plugins"
-    if [[ "$VERSION_ID" == "$VER20" || "$VERSION_ID" == "$VER22" ]]; then
-      sudo apt-remove -y python3-poetry
+    if [[ "$VERSION_ID" == "$VER22" ]]; then
+      sudo apt remove -y python3-poetry
       sudo -u bitcoin sh -c "cd ~/plugins/backup && pipx install poetry && pipx ensurepath"
       sudo -u bitcoin sh -c 'tee ~/plugins/backup/pyproject.toml <<EOF
 [project]
@@ -662,7 +665,7 @@ main() {
   VER22="22.04"
   VER20="20.04"
   echo "Running ${VERSION_ID}"
-  if [[ "$VERSION_ID" != "$VER20" && "$VERSION_ID" != "$VER22" && "$VERSION_ID" != "$VER24" ]]
+  if [[ "$VERSION_ID" != "$VER22" && "$VERSION_ID" != "$VER24" ]]
   then
     fmt_error 'Unsupported Ubuntu version'
     exit 1
