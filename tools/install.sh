@@ -1,42 +1,15 @@
 #!/bin/bash
 #
 # This script should be run via curl:
-#   sh -c "$(curl -fsSL https://raw.githubusercontent.com/linuxxer/slimnode/main/tools/install.sh)"
+#   bash -c "$(curl -fsSL https://raw.githubusercontent.com/linuxxer/slimnode/main/tools/install.sh)"
 # or via wget:
-#   sh -c "$(wget -qO- https://raw.githubusercontent.com/linuxxer/slimnode/main/tools/install.sh)"
+#   bash "$(wget -qO- https://raw.githubusercontent.com/linuxxer/slimnode/main/tools/install.sh)"
 # or via fetch:
-#   sh -c "$(fetch -o - https://raw.githubusercontent.com/linuxxer/slimnode/main/tools/install.sh)"
+#   bash "$(fetch -o - https://raw.githubusercontent.com/linuxxer/slimnode/main/tools/install.sh)"
 #
 # As an alternative, you can first download the install script and run it afterwards:
 #   wget https://raw.githubusercontent.com/linuxxer/slimnode/main/tools/install.sh
-#   sh install.sh
-#
-# You can tweak the install behavior by setting variables when running the script. For
-# example, to change the path to the Oh My Zsh repository:
-#   ZSH=~/.zsh sh install.sh
-#
-# Respects the following environment variables:
-#   ZDOTDIR - path to Zsh dotfiles directory (default: unset). See [1][2]
-#             [1] https://zsh.sourceforge.io/Doc/Release/Parameters.html#index-ZDOTDIR
-#             [2] https://zsh.sourceforge.io/Doc/Release/Files.html#index-ZDOTDIR_002c-use-of
-#   ZSH     - path to the Oh My Zsh repository folder (default: $HOME/.oh-my-zsh)
-#   REPO    - name of the GitHub repo to install from (default: ohmyzsh/ohmyzsh)
-#   REMOTE  - full remote URL of the git repo to install (default: GitHub via HTTPS)
-#   BRANCH  - branch to check out immediately after install (default: master)
-#
-# Other options:
-#   CHSH       - 'no' means the installer will not change the default shell (default: yes)
-#   RUNZSH     - 'no' means the installer will not run zsh after the install (default: yes)
-#   KEEP_ZSHRC - 'yes' means the installer will not replace an existing .zshrc (default: no)
-#
-# You can also pass some arguments to the install script to set some these options:
-#   --skip-chsh: has the same behavior as setting CHSH to 'no'
-#   --unattended: sets both CHSH and RUNZSH to 'no'
-#   --keep-zshrc: sets KEEP_ZSHRC to 'yes'
-# For example:
-#   sh install.sh --unattended
-# or:
-#   sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+#   bash install.sh
 #
 set -e
 
@@ -53,30 +26,6 @@ HOME="${HOME:-$(getent passwd $USER 2>/dev/null | cut -d: -f6)}"
 HOME="${HOME:-$(eval echo ~$USER)}"
 
 
-# Track if $ZSH was provided
-custom_zsh=${ZSH:+yes}
-
-# Use $zdot to keep track of where the directory is for zsh dotfiles
-# To check if $ZDOTDIR was provided, explicitly check for $ZDOTDIR
-zdot="${ZDOTDIR:-$HOME}"
-
-# Default value for $ZSH
-# a) if $ZDOTDIR is supplied and not $HOME: $ZDOTDIR/ohmyzsh
-# b) otherwise, $HOME/.oh-my-zsh
-if [ -n "$ZDOTDIR" ] && [ "$ZDOTDIR" != "$HOME" ]; then
-  ZSH="${ZSH:-$ZDOTDIR/ohmyzsh}"
-fi
-ZSH="${ZSH:-$HOME/.oh-my-zsh}"
-
-# Default settings
-REPO=${REPO:-ohmyzsh/ohmyzsh}
-REMOTE=${REMOTE:-https://github.com/${REPO}.git}
-BRANCH=${BRANCH:-master}
-
-# Other options
-CHSH=${CHSH:-yes}
-RUNZSH=${RUNZSH:-yes}
-KEEP_ZSHRC=${KEEP_ZSHRC:-no}
 
 command_exists() {
   command -v "$@" >/dev/null 2>&1
@@ -312,8 +261,8 @@ install_packages() {
     sudo apt install -y ${EXTRA_PKGS} jq pipx ufw htop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-venv wireguard python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go 
     sudo systemctl enable fail2ban
     sudo systemctl enable tor
-    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin no" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
-    sudo rm /etc/ssh/sshd_config.d/50-cloud-init.conf
+#    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin no" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
+#    sudo rm /etc/ssh/sshd_config.d/50-cloud-init.conf
   fi
 }
 
