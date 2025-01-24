@@ -306,7 +306,7 @@ install_packages() {
     sudo apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go 
     sudo systemctl enable fail2ban
     sudo systemctl enable tor
-    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin no" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
+    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin yes" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
   fi
   echo "${FMT_YELLOW}END install_packages()${FMT_RESET}"
 }
