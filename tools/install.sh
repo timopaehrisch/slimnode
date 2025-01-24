@@ -406,10 +406,10 @@ install_core_lightning() {
   if [ $CONTINUE -eq 1 ];then
     sudo -u bitcoin sh -c "mkdir -p ~/.lightning/bitcoin/backups/"
     sudo -u bitcoin sh -c "git clone https://github.com/ElementsProject/lightning.git ~/lightning && cd ~/lightning && git checkout v24.11.1"
-    if [ $VERSION_ID -eq $VER24 ];then
-      sudo -u bitcoin.sh -c "poetry install && ./configure --disable-rust && poetry run make -j`nproc --all` && sudo make install"
+    if [ "$VERSION_ID" == "$VER24" ]; then
+      sudo -u bitcoin sh -c "poetry install && ./configure --disable-rust && poetry run make -j`nproc --all` && sudo make install"
     else
-      sudo -u bitcoin.sh -c "./configure --disable-rust && make -j`nproc --all` && sudo make install"
+      sudo -u bitcoin sh -c "cd ~/lightning && ./configure --disable-rust && make -j`nproc --all` && sudo make install"
     fi
     sudo -u bitcoin sh -c "pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages"
     sudo -u bitcoin sh -c 'tee ~/.lightning/config <<EOF
@@ -621,7 +621,7 @@ main() {
   VER22="22.04"
   VER20="20.04"
 
-  if [[ $VERSION_ID -ne $VER22 || $VERSION_ID -ne $VER20 || $VERSION_ID -ne $VER24 ]];then
+if [[ "$VERSION_ID" != "$VER22" && "$VERSION_ID" != "$VER20" && "$VERSION_ID" != "$VER24" ]]; then
     fmt_error 'Unsupported Ubuntu version'
     exit 1
   fi
