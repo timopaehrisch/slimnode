@@ -407,7 +407,7 @@ install_core_lightning() {
     sudo -u bitcoin sh -c "mkdir -p ~/.lightning/bitcoin/backups/"
     sudo -u bitcoin sh -c "git clone https://github.com/ElementsProject/lightning.git ~/lightning && cd ~/lightning && git checkout v24.11.1"
     if [ "$VERSION_ID" == "$VER24" ]; then
-      sudo -u bitcoin sh -c "poetry install && ./configure --disable-rust && poetry run make -j`nproc --all` && sudo make install"
+      sudo -u bitcoin sh -c "cd ~/lightning && poetry install && ./configure --disable-rust && poetry run make -j`nproc --all` && sudo make install"
     else
       sudo -u bitcoin sh -c "cd ~/lightning && ./configure && make -j`nproc --all` && sudo make install"
     fi
