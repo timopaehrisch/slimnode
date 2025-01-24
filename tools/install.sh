@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This script should be run via curl:
 #   sh -c "$(curl -fsSL https://raw.githubusercontent.com/linuxxer/slimnode/main/tools/install.sh)"
@@ -303,7 +303,13 @@ install_packages() {
   if [ $CONTINUE -eq 1 ];then
     sudo apt update 
     sudo apt full-upgrade -y 
-    sudo apt install -y jq pipx ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go 
+    if [ "$VERSION_ID" == "$VER24" ]; then
+      EXTRA_PKGS="btop python3-poetry python3-json5"
+    else
+      EXTRA_PKGS=""
+    fi
+
+    sudo apt install -y ${EXTRA_PKGS} jq pipx ufw htop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-venv wireguard python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go 
     sudo systemctl enable fail2ban
     sudo systemctl enable tor
 #    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin yes" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
@@ -655,8 +661,9 @@ main() {
   VER24="24.04"
   VER22="22.04"
   VER20="20.04"
-
-if [[ "$VERSION_ID" != "$VER22" && "$VERSION_ID" != "$VER20" && "$VERSION_ID" != "$VER24" ]]; then
+  echo "Running ${VERSION_ID}"
+  if [[ "$VERSION_ID" != "$VER20" && "$VERSION_ID" != "$VER22" && "$VERSION_ID" != "$VER24" ]]
+  then
     fmt_error 'Unsupported Ubuntu version'
     exit 1
   fi
