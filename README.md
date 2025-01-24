@@ -116,8 +116,8 @@ EOF
 ```console
 git clone https://github.com/ElementsProject/lightning.git && cd lightning && git checkout v24.11.1 && poetry install && ./configure --disable-rust && poetry run make && sudo make install
  ```
+ Enter bitcoin user PW, if needed.
 
- Enter bitcoin user PW.
  ```console
 pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages
 
@@ -144,8 +144,7 @@ EOF
 ### Configure Backup Plugin
 
 ```console
-cd
-git clone https://github.com/lightningd/plugins.git && cd plugins/backup && poetry install && poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp
+cd && git clone https://github.com/lightningd/plugins.git && cd plugins/backup && poetry install && poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp
 ```
 
 
@@ -171,12 +170,8 @@ EOF
 
 ./lnd/lndcli create
 
-```console
 sudo su -
 ```
-
-## AS ROOT USER
-
 
 ### Start scripts for bitcoind, lightningd, lnd and RTL
 
