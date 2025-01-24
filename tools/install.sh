@@ -398,6 +398,7 @@ TimeoutSec=120
 WantedBy=multi-user.target
 EOF"
   fi
+  sudo systemctl enable bitcoind.service
 }
 
 install_core_lightning() {
@@ -448,6 +449,7 @@ MemoryDenyWriteExecute=true
 WantedBy=multi-user.target
 EOF"
   fi
+  sudo systemctl enable lightningd.service
 }
 
 install_lnd() {
@@ -484,13 +486,14 @@ TimeoutSec=60
 WantedBy=multi-user.target
 EOF"
   fi
+  sudo systemctl enable lnd.service
 }
 
 install_rtl() {
   ask_to_continue "Install Ride The Lightning?"
   if [ $CONTINUE -eq 1 ];then
     sudo -u bitcoin sh -c "git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
-    sudo -u bitcoin sh -c "tee RTL-Config.json <<EOF
+    sudo -u bitcoin sh -c 'tee ~/RTL/RTL-Config.json <<EOF
 {
   "port": "3000",
   "defaultNodeIndex": 1,
@@ -520,9 +523,9 @@ install_rtl() {
       }
     }
   ],
-  "multiPass": "${RTL_PW}"
+  "multiPass": "'"${RTL_PW}"'"
 }
-EOF"
+EOF'
     sudo sh -c "tee /etc/systemd/system/rtl.service <<EOF
 [Unit]
 Description=Ride The Lightning
@@ -540,14 +543,15 @@ WantedBy=multi-user.target
 EOF"
     RUNE=`sudo -u bitcoin sh -c "lightning-cli createrune | jq .rune"`
     sudo -u bitcoin sh -c "echo LIGHTNING_RUNE='${RUNE}' >~/RTL/rune.txt"
-    sudo systemctl enable rtl.service && sudo systemctl start rtl.service
+    sudo systemctl enable rtl.service
   fi
 }
 
 configure_wireguard() {
   ask_to_continue "Configure Wireguard?"
-#  if [ $CONTINUE -eq 1 ];then
-#  fi
+  if [ $CONTINUE -eq 1 ];then
+  
+  fi
 }
 
 setup_install() {
@@ -561,7 +565,7 @@ setup_install() {
     install_core_lightning
     install_lnd
     install_rtl
-    configure_wireguard
+#    configure_wireguard
 #    reboot_system
 
   else
