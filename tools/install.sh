@@ -279,19 +279,28 @@ setup_color() {
   FMT_RESET=$(printf '\033[0m')
 }
 
+ask_yes_or_no() {
+    read -p "$1 ([y]es or [N]o): "
+    case $(echo $REPLY | tr '[A-Z]' '[a-z]') in
+        y|yes) echo "yes" ;;
+        *)     echo "no" ;;
+    esac
+}
+
 ask_to_continue() {
+  CONTINUE=0
   echo "$1${FMT_YELLOW} Do you want to continue? [Y/n] " "$FMT_RESET"
   read -r opt
   case $opt in
-    y*|Y*|"") ;;
-    n*|N*) echo "Skipping."; return 2;;
+    y*|Y*|"") CONTINUE=1;;
+    n*|N*) ;;
     *) echo "Invalid choice. Exiting."; exit ;;
   esac
 }
 
 install_packages() {
-  ask_to_continue 'Install software packages and set sshd parameters?'
-  if [ $? -eq 0 ]; then
+  ask_to_continue "Install software packages and configure SSH?"
+  if [ $CONTINUE -eq 1 ];then
     sudo apt update 
     sudo apt full-upgrade -y 
     sudo apt install -y ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket valgrind libpq-dev shellcheck cppcheck libsecp256k1-dev lowdown cargo rustfmt protobuf-compiler python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go 
@@ -299,11 +308,12 @@ install_packages() {
     sudo systemctl enable tor
     sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin no" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
   fi
+  echo "${FMT_YELLOW}END install_packages()${FMT_RESET}"
 }
 
 create_bitcoin_user() {
   ask_to_continue "Create a 'bitcoin' system user?"
-  if [ $? -eq 0 ]; then
+  if [ $CONTINUE -eq 1 ];then
     sudo useradd -m bitcoin -s /bin/bash
     sudo adduser bitcoin sudo
     sudo usermod -a -G debian-tor bitcoin
@@ -314,7 +324,7 @@ create_bitcoin_user() {
 
 setup_firewall() {
   ask_to_continue "Setup firewall?"
-  if [ $? -eq 0 ]; then
+  if [ $CONTINUE -eq 1 ];then
     sudo ufw default deny incoming 
     sudo ufw default allow outgoing
     sudo ufw allow 51820/udp 
@@ -328,14 +338,14 @@ setup_firewall() {
 
 reboot_system() {
   ask_to_continue "Reboot the system?"
-  if [ $? -eq 0 ]; then
+  if [ $CONTINUE -eq 1 ];then
     sudo reboot
   fi
 }
 
 create_ssh_keys() {
   ask_to_continue "Create SSH keys?"
-  if [ $? -eq 0 ]; then
+  if [ $CONTINUE -eq 1 ];then
     sudo -u bitcoin sh -c "ssh-keygen -t rsa -b 4096"
   fi
 }
@@ -343,7 +353,7 @@ create_ssh_keys() {
 install_bitcoin_core() {
   VERSION="27.0"
   ask_to_continue "Install Bitcoin Core ${VERSION}?"
-  if [ $? -eq 0 ]; then
+  if [ $CONTINUE -eq 1 ];then
     sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -P ~"
     sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS -P ~"
     sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS.asc -P ~"
@@ -392,7 +402,7 @@ EOF"
 
 install_core_lightning() {
   ask_to_continue "Install c-lightning?"
-  if [ $? -eq 0 ]; then
+  if [ $CONTINUE -eq 1 ];then
     sudo -u bitcoin sh -c "mkdir -p ~/.lightning/bitcoin/backups/"
     sudo -u bitcoin sh -c "git clone https://github.com/ElementsProject/lightning.git ~/lightning && cd ~/lightning && git checkout v24.11.1 && poetry install && ./configure --disable-rust && poetry run make && sudo make install"
     sudo -u bitcoin sh -c "pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket --break-system-packages"
@@ -442,7 +452,7 @@ EOF"
 
 install_lnd() {
   ask_to_continue "Install lnd?"
-  if [ $? -eq 0 ]; then
+  if [ $CONTINUE -eq 1 ];then
     LND_VERSION="v0.18.4-beta"
     sudo -u bitcoin sh -c "mkdir ~/.lnd"
     sudo -u bitcoin sh -c "wget https://github.com/lightningnetwork/lnd/releases/download/${LND_VERSION}/lnd-linux-386-${LND_VERSION}.tar.gz -P ~"
@@ -478,7 +488,7 @@ EOF"
 
 install_rtl() {
   ask_to_continue "Install Ride The Lightning?"
-  if [ $? -eq 0 ]; then
+  if [ $CONTINUE -eq 1 ];then
     sudo -u bitcoin sh -c "git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
     sudo -u bitcoin sh -c "tee RTL-Config.json <<EOF
 {
@@ -529,7 +539,7 @@ Type=simple
 WantedBy=multi-user.target
 EOF"
     RUNE=`sudo -u bitcoin sh -c "lightning-cli createrune | jq .rune"`
-    sudo -u bitcoin sh -c "echo LIGHTNING_RUNE='${RUNE}' >~/RTL/rune2.txt"
+    sudo -u bitcoin sh -c "echo LIGHTNING_RUNE='${RUNE}' >~/RTL/rune.txt"
     sudo systemctl enable rtl.service && sudo systemctl start rtl.service
   fi
 }
