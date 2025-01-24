@@ -306,7 +306,7 @@ install_packages() {
     sudo apt install -y jq pipx ufw htop btop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-poetry python3-venv wireguard python3-json5 python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go 
     sudo systemctl enable fail2ban
     sudo systemctl enable tor
-    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin yes" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
+#    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin yes" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
   fi
 }
 
@@ -468,26 +468,26 @@ EOF'
     sudo -u bitcoin sh -c "cd ~/plugins/backup && /home/bitcoin/.local/bin/poetry install && /home/bitcoin/.local/bin/poetry run ./backup-cli init --lightning-dir /home/bitcoin/.lightning/bitcoin file:///home/bitcoin/.lightning/bitcoin/backups/lightningd.sqlite3.bkp"
     sudo sh -c "tee /etc/systemd/system/lightningd.service <<EOF
 [Unit]
-#Description=c-lightning daemon on mainnet
-#After=bitcoind.service
-#
-#[Service]
-#ExecStart=/usr/local/bin/lightningd --conf=/home/bitcoin/.lightning/config  --pid-file=/run/lightningd/lightningd.pid
-#RuntimeDirectory=lightningd
-#User=bitcoin
-#Group=bitcoin
-#Type=simple
-#PIDFile=/run/lightningd/lightningd.pid
-#TimeoutSec=60
-#PrivateTmp=true
-#ProtectSystem=full
-#NoNewPrivileges=true
-#PrivateDevices=true
-#MemoryDenyWriteExecute=true
-#
-#[Install]
-#WantedBy=multi-user.target
-#EOF"
+Description=c-lightning daemon on mainnet
+After=bitcoind.service
+
+[Service]
+ExecStart=/usr/local/bin/lightningd --conf=/home/bitcoin/.lightning/config  --pid-file=/run/lightningd/lightningd.pid
+RuntimeDirectory=lightningd
+User=bitcoin
+Group=bitcoin
+Type=simple
+PIDFile=/run/lightningd/lightningd.pid
+TimeoutSec=60
+PrivateTmp=true
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateDevices=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target
+EOF"
   fi
   sudo mkdir -p /run/lightningd/
   sudo chown bitcoin:bitcoin /run/lightningd/
