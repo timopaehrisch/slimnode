@@ -168,7 +168,7 @@ bitcoin.mainnet=true
 bitcoin.node=bitcoind
 EOF
 
-./lnd/lndcli create
+./lnd/lncli create
 
 sudo su -
 ```
