@@ -431,7 +431,7 @@ bind-addr='${PUBLIC_IP}':9735
 announce-addr='${PUBLIC_IP}':9735
 EOF'
     sudo -u bitcoin sh -c "git clone https://github.com/lightningd/plugins.git ~/plugins"
-    if [ "$VERSION_ID" == "$VER22" ]; then
+    if [[ "$VERSION_ID" == "$VER20" || "$VERSION_ID" == "$VER22" ]]; then
       sudo apt-remove -y python3-poetry
       sudo -u bitcoin sh -c "cd ~/plugins/backup && pipx install poetry && pipx ensurepath"
       sudo -u bitcoin sh -c 'tee ~/plugins/backup/pyproject.toml <<EOF
