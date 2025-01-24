@@ -253,24 +253,21 @@ EOF
 ### Start bitcoin and check log file
 
 ```console
-systemctl enable bitcoind && systemctl enable lightningd.service && systemctl start bitcoind
-tail -f /home/bitcoin/.bitcoin/debug.log
+systemctl enable bitcoind && systemctl start bitcoind && sleep 2 && tail -f /home/bitcoin/.bitcoin/debug.log
 <CTRL-c>
 ```
 
 ### Start lightningd and check log file
 
-```
-systemctl enable lightningd.service && systemctl start lightningd.service
-tail -f /home/bitcoin/.lightning/bitcoin/cl.log
+```console
+systemctl enable lightningd.service && systemctl start lightningd.service && sleep 2 && tail -f /home/bitcoin/.lightning/bitcoin/cl.log
 <CTRL-c>
 ```
 
 ### Start lnd and check log file
 
-```
-systemctl enable lnd.service && systemctl start lnd.service
-tail -f /home/bitcoin/.lnd/bitcoin/cl.log
+```console
+systemctl enable lnd.service && systemctl start lnd.service && sleep 2 && tail -f /home/bitcoin/.lnd/logs/bitcoin/mainnet/lnd.log
 <CTRL-c>
 su -c "~/lnd/lncli create" bitcoin
 ```
@@ -337,11 +334,16 @@ exit
 
 ### ROOT USER
 
-## Configure wireguard - set the first two variable with the public keys for your phone & desktop pc
+## Configure wireguard 
+
+Set the first two variables to your public keys from your phone & desktop wireguard app
 
 ```console
-PHONE_PUBLIC_KEY=<SET ME>
-DESKTOP_PUBLIC_KEY=<SET_ME>
+PHONE_PUBLIC_KEY=<REPLACE ME>
+DESKTOP_PUBLIC_KEY=<REPLACE_ME>
+```
+
+```console
 wg genkey | sudo tee /etc/wireguard/private.key && chmod go= /etc/wireguard/private.key && cat /etc/wireguard/private.key | wg pubkey | tee /etc/wireguard/public.key
 
 PRIV_KEY=`cat /etc/wireguard/private.key` tee /etc/wireguard/wg0.conf <<EOF
@@ -377,9 +379,9 @@ sysctl -p
 systemctl restart wg-quick@wg0 && wg show
 ```
 
-<wireguard-screenshot iphone>
+TODO: wireguard-screenshot iphone & Desktop
 
-## Wireguard Config Arbeitsrechner
+## Wireguard Configuration on work station
 
 ```console
 [Interface]
@@ -388,9 +390,9 @@ Address = 10.0.0.3/24
 
 # VPS
 [Peer]
-PublicKey = mC0p+VBgBJImwlb7D2MehElGuY+F9r3yF7mFd4pFYDk=
+PublicKey = <REPLACE_ME_WITH_PUBLIC_KEY_FROM_VPS>
 AllowedIPs = 10.0.0.1/32
-Endpoint = 185.170.58.134:51820
+Endpoint = <PUBLIC_IP>:51820
 ```
 
 # Backups & Maintenance

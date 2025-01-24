@@ -78,13 +78,6 @@ CHSH=${CHSH:-yes}
 RUNZSH=${RUNZSH:-yes}
 KEEP_ZSHRC=${KEEP_ZSHRC:-no}
 
-_DEBUG="on"
-
-function DEBUG()
-{
- [ "$_DEBUG" == "on" ] && $@
-}
-
 command_exists() {
   command -v "$@" >/dev/null 2>&1
 }
