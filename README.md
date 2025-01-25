@@ -1,22 +1,43 @@
 # Slim node - set up Bitcoin and Lightning node with a few commands
 
-This guide explains how to set up a Bitcoin and a Lightning node on a VPS. There are plenty of VPS providers out there, and for about $5/month, you can get a VPS that’s more than enough with specs like these:
+This guide explains how to set up a Bitcoin and a Lightning node on a VPS. 
+
+The following components can be installed:
+
+* bitcoind (Bitcoin core)
+* lightningd (Core Lightning - CLN)
+* lnd (Lightning Network Daemon)
+* RTL (Ride The Lightning)
+* VPN access via WireGuard
+
+There are plenty of VPS providers out there, for about $5/month you can rent a VPS that’s more than
+enough for our purposte. Look for similar specs:
 
     8 GB RAM
     100 GB SSD
     Ubuntu 22.04 or 24.04
 
-6 GB of RAM is fine too, but you shouldn’t go much lower than 80 GB of storage.
+6 GB of RAM is fine too, but you shouldn’t go much lower than 80 GB of storage. Ubuntu 22.04 or 24.04 mandatory.
 
-You’ll also need to know your server’s public IP address. For simplicity, we’ll add it to the /etc/hosts file on our local machine:
+I did this project, because I wanted to get rid of my Raspberry Pi at home. It's shaky hardware and 
+I encountered quite same fails due to errors on the hard disk resulting in a broken blockchain, so I had 
+to download everything again - which can take several weeks, especially if you do it via Tor. Also, I wasn't
+happy with most node distributions, which can be tricky to debug, if you run into problems. Also, the
+load on my Raspberry Pis was usually very high due to status scripts that run every few seconds to 
+display information about the blockchain, the channel count a.s.o.. However, this data is only interesting
+every now and then, so no need to stress the system all the time. Slim node is the opposite to
+rich menu-driven node distributions, I tried to keep the system simple and clean, and easy to debug.
+
+# Installation
+
+When you rented your VPS, you'll also get a public IP address of your server. For simplicity, I added 
+an entry to /etc/hosts on my local machine:
 
 ```
 185.170.58.xyz  vps
 ```
 
-You should also set up a root password in the provider’s interface and optionally add SSH keys already.
-
-First, we’ll take care of some security settings. To start, let’s copy the SSH keys from our work stat
+You should also have set up a root password in the provider’s web interface and optionally added some SSH keys already.
 
 You should now be logged into your VPS as root or as a user with sudo permissions.
 
@@ -24,6 +45,62 @@ You should now be logged into your VPS as root or as a user with sudo permission
 wget https://raw.githubusercontent.com/timopaehrisch/slimnode/refs/heads/main/tools/install.sh
 bash ./install.sh
 ```
+The script will guide you through the installation process and ask you, if you want to perform 
+the following actions. You can also leave out steps.
+
+Install software packages and configure SSH?
+- Mandatory, run once
+
+Create a 'bitcoin' system user?
+- Mandatory, run once
+
+Setup firewall?
+- Mandatory, run once
+
+Create SSH keys?
+- Mandatory, run once (SSH keys for bitcoin user)
+
+Install Bitcoin Core 27.0?
+- Mandatory, run once
+
+Install c-lightning?
+- Optional
+
+Install lnd? 
+- Optional
+
+Install Ride The Lightning?
+- Optional
+
+Configure Wireguard? 
+- Optional
+
+# File Structure
+
+All node implementation and RTL run as the bitcoin user (home directory /home/bitcoin). 
+
+## Logfiles
+
+| Node Software | Path |
+| -------- | ------- |
+| bitcoind  | ~/.bitcoin/debug.log   |
+| lightningd | ~/.lightning/bitcoin/cl.log  |
+| lnd | ~/.lnd/logs/bitcoin/mainnet/lnd.log  |
+
+
+
+ChallengeResponseAuthenticationomost important and it's done intentionally to  
+
+ strips down the system, disable_mempool_fee_histogram
+
+
+
+
+
+The installer configures some security measures (firewall etc.). You can install CLN and LND side by side
+on one VPS. 
+
+
 
 ### Turn of password authentication, update system & install some software
 
