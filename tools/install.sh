@@ -616,10 +616,22 @@ print_summary() {
   fi
   if [ "$RTL_INSTALLED" = true ] ; then
     echo 'rtl will be started.'
+    echo "You can access RTL at http://0.0.0.0:3000"
   fi
   if [ "$WIREGUARD_INSTALLED" = true ] ; then
     echo 'wireguard will be started.'
   fi
+}
+
+# $1: file $2: key
+read_property()
+{
+  file="$1"
+  while IFS="=" read -r key value; do
+    case "$key" in
+      $2) echo "found property $2=$value" && found_property_value="$value" ;;
+    esac
+  done < "$file"
 }
 
 setup_install() {
@@ -645,7 +657,19 @@ setup_install() {
 main() {
   WG_NODE_VPN_IP=10.0.0.2
   PUBLIC_IP=`wget -qO- https://ipecho.net/plain ; echo`
-  BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
+  BITCOIND_CONF="/home/bitcoin/.bitcoin/bitcoin.conf"
+  BITCOIND_RPCUSER_PROP="rpcpassword"
+  found_property_value=""
+  if [ -f ${BITCOIND_CONF} ]; then
+    read_property ${BITCOIND_CONF} ${BITCOIND_RPCUSER_PROP}
+    if [ -n "$found_property_value" ]; then
+      echo "Found property ${BITCOIND_RPCUSER_PROP}=${found_property_value} from file ${BITCOIND_CONF}"
+      BITCOIND_PW=${found_property_value} 
+    else
+      echo "found_property_value is empty, that means ${BITCOIND_RPCUSER_PROP} was not found in ${BITCOIND_CONF}. Gemerating password"
+      BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
+    fi
+  fi
   RTL_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
   . /etc/os-release
   VER24="24.04"
