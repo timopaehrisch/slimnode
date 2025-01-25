@@ -367,7 +367,7 @@ install_core_lightning() {
     else
       sudo -u bitcoin sh -c "cd ~/lightning && ./configure && make -j`nproc --all` ; sudo make install"
     fi
-    if [[ "$VERSION_ID" == "$VER22" || "$VERSION_ID" == "$VER24" ]]; then
+    if [[ "$VERSION_ID" == "$VER24" ]]; then
       PIP_OPTIONS="--break-system-packages"
     fi
     sudo -u bitcoin sh -c "pip3 install --user pyln-client websockets flask-cors flask-restx pyln-client flask-socketio gevent gevent-websocket ${PIP_OPTIONS}"
@@ -621,16 +621,7 @@ print_summary() {
     echo 'wireguard will be started.'
   fi
 }
-setup_defaults() {
-  WG_NODE_VPN_IP=10.0.0.2
-  PUBLIC_IP=`wget -qO- https://ipecho.net/plain ; echo`
-  BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
-  RTL_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
-  . /etc/os-release
-  VER24="24.04"
-  VER22="22.04"
-  VER20="20.04"
-}
+
 setup_install() {
   if user_can_sudo; then
     echo "${FMT_GREEN}sudo for user allowed.${FMT_RESET}"
@@ -652,6 +643,14 @@ setup_install() {
   fi
 }
 main() {
+  WG_NODE_VPN_IP=10.0.0.2
+  PUBLIC_IP=`wget -qO- https://ipecho.net/plain ; echo`
+  BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
+  RTL_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
+  . /etc/os-release
+  VER24="24.04"
+  VER22="22.04"
+  VER20="20.04"
   echo "Running ${VERSION_ID}"
   if [[ "$VERSION_ID" != "$VER22" && "$VERSION_ID" != "$VER24" ]]
   then
@@ -668,7 +667,6 @@ main() {
     shift
   done
   setup_color
-  setup_defaults
   setup_install
  # setup_ohmyzsh
  # setup_zshrc

@@ -27,7 +27,8 @@ You should now be logged into your VPS as root.
 
 
 ```console
-bash "$(curl -fsSL https://raw.githubusercontent.com/timopaehrisch/slimnode/refs/heads/main/tools/install.sh)"
+wget https://raw.githubusercontent.com/timopaehrisch/slimnode/refs/heads/main/tools/install.sh
+bash ./install.sh
 ```
 
 ### Turn of password authentication, update system & install some software
