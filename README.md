@@ -1,6 +1,6 @@
 # Slim node - set up Bitcoin and Lightning node with a few commands
 
-This guide explains how to set up a Bitcoin and a Lightning node on a VPS. 
+This guide explains how to set up a Bitcoin and a Lightning node on a VPS (Virtual Private Server). 
 
 The following components can be installed:
 
@@ -17,7 +17,8 @@ enough for our purposte. Look for similar specs:
     100 GB SSD
     Ubuntu 22.04 or 24.04
 
-6 GB of RAM is fine too, but you shouldn’t go much lower than 80 GB of storage. Ubuntu 22.04 or 24.04 mandatory.
+6 GB of RAM is fine too, but you shouldn’t go much lower than 80 GB of storage. Ubuntu 22.04 or 24.04
+is mandatory.
 
 I did this project, because I wanted to get rid of my Raspberry Pi at home. It's shaky hardware and 
 I encountered quite same fails due to errors on the hard disk resulting in a broken blockchain, so I had 
@@ -26,7 +27,11 @@ happy with most node distributions, which can be tricky to debug, if you run int
 load on my Raspberry Pis was usually very high due to status scripts that run every few seconds to 
 display information about the blockchain, the channel count a.s.o.. However, this data is only interesting
 every now and then, so no need to stress the system all the time. Slim node is the opposite to
-rich menu-driven node distributions, I tried to keep the system simple and clean, and easy to debug.
+rich menu-driven node distributions, I tried to keep the system simple and clean, and easy to debug. 
+Turns out: You can run a Bitcoin node and two Lightning nodes on the same tiny VPS without problems
+ (unless you open a vast amount of channels).
+
+
 
 # Installation
 
@@ -37,42 +42,54 @@ an entry to /etc/hosts on my local machine:
 185.170.58.xyz  vps
 ```
 
-You should also have set up a root password in the provider’s web interface and optionally added some SSH keys already.
+You should also have set up a root password in the provider’s web interface and optionally added
+some SSH keys already.
 
 You should now be logged into your VPS as root or as a user with sudo permissions.
+
+Download and execute the installer script:
 
 ```console
 wget https://raw.githubusercontent.com/timopaehrisch/slimnode/refs/heads/main/tools/install.sh
 bash ./install.sh
 ```
-The script will guide you through the installation process and ask you, if you want to perform 
-the following actions. You can also leave out steps.
+The script will guide you through the installation process and ask, which steps you want to perform. 
+The setup process for a Bitcoin node is usally pretty straight-forward:
 
-Install software packages and configure SSH?
+- Secure your system, install necessary software
+- Install Bitcoin node
+- Install Lightning node(s)
+- Install administration tools (RTL)
+
+You can also leave out steps, if they have already been performed and you re-run the installer script.
+
+These are these interactive steps:
+
+1. Install software packages and configure SSH?
 - Mandatory, run once
 
-Create a 'bitcoin' system user?
+2. Create a 'bitcoin' system user?
 - Mandatory, run once
 
-Setup firewall?
+3. Setup firewall?
 - Mandatory, run once
 
-Create SSH keys?
+4. Create SSH keys?
 - Mandatory, run once (SSH keys for bitcoin user)
 
-Install Bitcoin Core 27.0?
+5. Install Bitcoin Core 27.0?
 - Mandatory, run once
 
-Install c-lightning?
+6. Install c-lightning?
 - Optional
 
-Install lnd? 
+7. Install lnd? 
 - Optional
 
-Install Ride The Lightning?
+8. Install Ride The Lightning?
 - Optional
 
-Configure Wireguard? 
+9. Configure Wireguard? 
 - Optional
 
 # File Structure

@@ -228,13 +228,6 @@ setup_color() {
   FMT_RESET=$(printf '\033[0m')
 }
 
-ask_yes_or_no() {
-    read -p "$1 ([y]es or [N]o): "
-    case $(echo $REPLY | tr '[A-Z]' '[a-z]') in
-        y|yes) echo "yes" ;;
-        *)     echo "no" ;;
-    esac
-}
 
 ask_to_continue() {
   CONTINUE=0
@@ -247,8 +240,8 @@ ask_to_continue() {
   esac
 }
 
-install_packages() {
-  ask_to_continue "Install software packages and configure SSH?"
+prepare_system() {
+  ask_to_continue "Install software packages, create bitcoin user and configure firewall?"
   if [ $CONTINUE -eq 1 ];then
     sudo apt update 
     sudo apt full-upgrade -y 
@@ -258,54 +251,52 @@ install_packages() {
       EXTRA_PKGS=""
     fi
 
-    sudo apt install -y ${EXTRA_PKGS} jq pipx ufw htop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-venv wireguard python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go python3-json5 
+    sudo apt install -y ${EXTRA_PKGS} jq pipx ufw htop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-venv wireguard python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio python3-grpc-tools python3-psutil ripgrep golang-go python3-json5 
     sudo apt autoremove -y
-    if [ "$VERSION_ID" == "$VER22" ]; then
-      sudo apt remove nodejs npm
-    fi
+#    if [ "$VERSION_ID" == "$VER22" ]; then
+#      sudo apt remove nodejs npm
+#    fi
     sudo systemctl enable fail2ban
     sudo systemctl enable tor
 #    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin no" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
 #    sudo rm /etc/ssh/sshd_config.d/50-cloud-init.conf
+
+    # Check if bitcoin user exists
+    if id "$1" >/dev/null 2>&1; then
+      echo "User 'bitcoin' already exists. Skipping user creation."
+    else
+      echo "User 'bitcoin' does not exist. Creating user."
+      sudo useradd -m bitcoin -s /bin/bash
+      sudo adduser bitcoin sudo
+      sudo usermod -a -G debian-tor bitcoin
+      echo "${FMT_RED}PASSWORD${FMT_RESET} ${FMT_YELLOW}Set a password for the 'bitcoin' system user and write it down/store it in a password manager.${FMT_RESET}"
+      sudo passwd bitcoin
+    fi
+    setup_firewall
+    if [ -f "/home/bitcoin/.ssh/id_rsa" ]; then
+      echo "SSH Keys already exists. Skipping."
+    else
+      sudo -u bitcoin sh -c "ssh-keygen -t rsa -b 4096 -f /home/bitcoin/.ssh/id_rsa -P ''"
+    fi
   fi
 }
 
-create_bitcoin_user() {
-  ask_to_continue "Create a 'bitcoin' system user?"
-  if [ $CONTINUE -eq 1 ];then
-    sudo useradd -m bitcoin -s /bin/bash
-    sudo adduser bitcoin sudo
-    sudo usermod -a -G debian-tor bitcoin
-    echo "${FMT_YELLOW}Set a password for the 'bitcoin' system user and write it down/store it in a password manager.${FMT_RESET}"
-    sudo passwd bitcoin
-  fi
-}
 
 setup_firewall() {
-  ask_to_continue "Setup firewall?"
-  if [ $CONTINUE -eq 1 ];then
-    sudo ufw default deny incoming 
-    sudo ufw default allow outgoing
-    sudo ufw allow 51820/udp 
-    sudo ufw allow 22,9735,9736/tcp
-    sudo ufw allow proto tcp from 10.0.0.0/24 to 10.0.0.0/24 port 3000,8332,50002
-    sudo ufw logging off 
-    sudo ufw --force enable
-    sudo systemctl enable ufw
-  fi
+  sudo ufw default deny incoming 
+  sudo ufw default allow outgoing
+  sudo ufw allow 51820/udp 
+  sudo ufw allow 22,9735,9736/tcp
+  sudo ufw allow proto tcp from 10.0.0.0/24 to 10.0.0.0/24 port 3000,8332,50002
+  sudo ufw logging off 
+  sudo ufw --force enable
+  sudo systemctl enable ufw
 }
 
 reboot_system() {
   ask_to_continue "Reboot the system?"
   if [ $CONTINUE -eq 1 ];then
     sudo shutdown -r now
-  fi
-}
-
-create_ssh_keys() {
-  ask_to_continue "Create SSH keys?"
-  if [ $CONTINUE -eq 1 ];then
-    sudo -u bitcoin sh -c "ssh-keygen -t rsa -b 4096 -f /home/bitcoin/.ssh/id_rsa -P ''"
   fi
 }
 
@@ -506,9 +497,13 @@ fi'
 install_rtl() {
   ask_to_continue "Install Ride The Lightning?"
   if [ $CONTINUE -eq 1 ];then
-    sudo -u bitcoin sh -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash"
+    sudo -u bitcoin sh -c "PROFILE=/dev/null curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash"
+    sudo -u bitcoin sh -c 'tee >>~/.profile <<EOF
+export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+EOF'
     sudo -u bitcoin sh -c ". ~/.profile;nvm install node"
-    sudo -u bitcoin sh -c ". ~/.profile; git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
+    sudo -u bitcoin sh -c ". ~/.bashrc; git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
     sudo -u bitcoin sh -c 'tee ~/RTL/RTL-Config.json <<EOF
 {
   "port": "3000",
@@ -661,10 +656,8 @@ read_property()
 setup_install() {
   if user_can_sudo; then
     echo "${FMT_GREEN}sudo for user allowed.${FMT_RESET}"
-    install_packages
-    create_bitcoin_user
-    setup_firewall
-    create_ssh_keys
+    prepare_system
+#    create_ssh_keys
     install_bitcoin_core
     install_core_lightning
     install_lnd
