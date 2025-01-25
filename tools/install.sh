@@ -304,7 +304,6 @@ install_bitcoin_core() {
     echo "bitcoind already installed. Skipping."
     CONTINUE=0
   fi
-
   if [ $CONTINUE -eq 1 ];then
     sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${BITCOIND_VERSION}/bitcoin-${BITCOIND_VERSION}-x86_64-linux-gnu.tar.gz -P ~"
     sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${BITCOIND_VERSION}/SHA256SUMS -P ~"
