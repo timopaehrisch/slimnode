@@ -679,8 +679,8 @@ setup_install() {
   fi
 }
 main() {
-  WG_NODE_VPN_IP=10.0.0.2
-  PUBLIC_IP=`wget -qO- https://ipecho.net/plain ; echo`
+  WG_NODE_VPN_IP=10.0.0.1
+  PUBLIC_IP=`curl https://ipinfo.io/ip`
   BITCOIND_CONF="/home/bitcoin/.bitcoin/bitcoin.conf"
   BITCOIND_RPCUSER_PROP="rpcpassword"
   found_property_value=""
