@@ -4,27 +4,21 @@ This guide explains how to set up a Bitcoin and a Lightning node on a VPS. There
 
     8 GB RAM
     100 GB SSD
-    Ubuntu 24+
+    Ubuntu 22.04 or 24.04
 
 6 GB of RAM is fine too, but you shouldn’t go much lower than 80 GB of storage.
 
 You’ll also need to know your server’s public IP address. For simplicity, we’ll add it to the /etc/hosts file on our local machine:
 
 ```
-185.170.58.134  vps
+185.170.58.xyz  vps
 ```
 
-You should also set up a root password through the provider’s interface and optionally add SSH keys.
+You should also set up a root password in the provider’s interface and optionally add SSH keys already.
 
-First, we’ll take care of some security settings. To start, let’s copy the SSH keys from our work station's user to the VPS:
+First, we’ll take care of some security settings. To start, let’s copy the SSH keys from our work stat
 
-```console
-ssh-copy-id root@vps
-ssh root@vps
-```
-You should now be logged into your VPS as root.
-
-
+You should now be logged into your VPS as root or as a user with sudo permissions.
 
 ```console
 wget https://raw.githubusercontent.com/timopaehrisch/slimnode/refs/heads/main/tools/install.sh

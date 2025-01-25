@@ -259,6 +259,7 @@ install_packages() {
     fi
 
     sudo apt install -y ${EXTRA_PKGS} jq pipx ufw htop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-venv wireguard python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go python3-json5 
+    sudo apt autoremove -y
     if [ "$VERSION_ID" == "$VER22" ]; then
       sudo apt remove nodejs npm
     fi
@@ -470,7 +471,7 @@ install_lnd() {
 [Application Options]
 listen='${PUBLIC_IP}':9736
 externalip='${PUBLIC_IP}':9736
-debuglevel=debug
+restlisten=127.0.0.1:8080
 
 [Bitcoin]
 bitcoin.mainnet=true
@@ -505,10 +506,8 @@ fi'
 install_rtl() {
   ask_to_continue "Install Ride The Lightning?"
   if [ $CONTINUE -eq 1 ];then
-    if [ "$VERSION_ID" == "$VER22" ]; then
-      sudo -u bitcoin sh -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash"
-      sudo -u bitcoin sh -c ". ~/.profile;nvm install node"
-    fi
+    sudo -u bitcoin sh -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash"
+    sudo -u bitcoin sh -c ". ~/.profile;nvm install node"
     sudo -u bitcoin sh -c ". ~/.profile; git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
     sudo -u bitcoin sh -c 'tee ~/RTL/RTL-Config.json <<EOF
 {
@@ -556,6 +555,7 @@ install_rtl() {
         "unannouncedChannels": false,
         "blockExplorerUrl": "https://mempool.space"
       }
+    }
   ],
   "multiPass": "'"${RTL_PW}"'"
 }
