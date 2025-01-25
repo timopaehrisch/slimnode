@@ -286,18 +286,6 @@ prepare_system() {
   fi
 }
 
-
-setup_firewall() {
-  sudo ufw default deny incoming 
-  sudo ufw default allow outgoing
-  sudo ufw allow 51820/udp 
-  sudo ufw allow 22,9735,9736/tcp
-  sudo ufw allow proto tcp from 10.0.0.0/24 to 10.0.0.0/24 port 3000,3010,8080,8332,50002
-  sudo ufw logging off 
-  sudo ufw --force enable
-  sudo systemctl enable ufw
-}
-
 reboot_system() {
   ask_to_continue "Reboot the system?"
   if [ $CONTINUE -eq 1 ];then
@@ -308,6 +296,11 @@ reboot_system() {
 install_bitcoin_core() {
   VERSION="27.0"
   ask_to_continue "Install Bitcoin Core ${VERSION}?"
+  if [ -f "/usr/local/bin/bitcoind" ]; then
+    echo "bitcoind already installed. Skipping."
+    CONTINUE=0
+  fi
+
   if [ $CONTINUE -eq 1 ];then
     sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -P ~"
     sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS -P ~"
@@ -323,7 +316,7 @@ install_bitcoin_core() {
     sudo -u bitcoin sh -c "tee >~/.bitcoin/bitcoin.conf <<EOF
 daemon=1
 server=1
-prune=60000
+prune=50000
 onion=127.0.0.1:9050
 listen=1
 deprecatedrpc=create_bdb
@@ -359,6 +352,11 @@ EOF"
 
 install_core_lightning() {
   ask_to_continue "Install c-lightning?"
+  if [ -f "/usr/local/bin/lightningd" ]; then
+    echo "lightningd already installed. Skipping."
+    CONTINUE=0
+  fi
+
   if [ $CONTINUE -eq 1 ];then
     sudo -u bitcoin sh -c "mkdir -p ~/.lightning/bitcoin/backups/"
     sudo -u bitcoin sh -c "git clone https://github.com/ElementsProject/lightning.git ~/lightning && cd ~/lightning && git checkout v24.11.1"
@@ -468,6 +466,10 @@ EOF
 
 install_lnd() {
   ask_to_continue "Install lnd?"
+  if [ -f "/home/bitcoin/lnd/lnd" ]; then
+    echo "lnd already installed. Skipping."
+    CONTINUE=0
+  fi
   if [ $CONTINUE -eq 1 ];then
     LND_VERSION="v0.18.4-beta"
     sudo -u bitcoin sh -c "mkdir ~/.lnd"
@@ -519,6 +521,7 @@ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || pr
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 EOF'
     sudo -u bitcoin sh -c ". ~/.profile;nvm install node"
+    sudo -u bitcoin sh -c "rm -rf /home/bitcoin/RTL"
     sudo -u bitcoin sh -c ". ~/.bashrc; git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
     sudo -u bitcoin sh -c 'tee ~/RTL/RTL-Config.json <<EOF
 {
