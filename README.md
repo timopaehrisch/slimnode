@@ -1,35 +1,38 @@
-# Slim node - set up Bitcoin and Lightning node with a few commands
+# SlimNode - Set up minimalistic Bitcoin and Lightning node with a few steps
 
-This guide explains how to set up a Bitcoin and a Lightning node on a VPS (Virtual Private Server). 
+This guide explains how to set up a Bitcoin and a Lightning node on a VPS (Virtual Private Server), 
+but the script should also work on a Raspberry Pi.
 
 The following components can be installed:
 
-* bitcoind (Bitcoin core)
+* bitcoind (Pruned Bitcoin core)
 * lightningd (Core Lightning - CLN)
 * lnd (Lightning Network Daemon)
 * RTL (Ride The Lightning)
 * VPN access via WireGuard
 
 There are plenty of VPS providers out there, for about $5/month you can rent a VPS that’s more than
-enough for our purposte. Look for similar specs:
+enough for our purposte. Look for specs like these:
 
     8 GB RAM
-    100 GB SSD
+    100 GB Disk Storage
     Ubuntu 22.04 or 24.04
 
 6 GB of RAM is fine too, but you shouldn’t go much lower than 80 GB of storage. Ubuntu 22.04 or 24.04
-is mandatory.
+is mandatory, I found the latest version easier to handle.
 
 I did this project, because I wanted to get rid of my Raspberry Pi at home. It's shaky hardware and 
 I encountered quite same fails due to errors on the hard disk resulting in a broken blockchain, so I had 
 to download everything again - which can take several weeks, especially if you do it via Tor. Also, I wasn't
-happy with most node distributions, which can be tricky to debug, if you run into problems. Also, the
-load on my Raspberry Pis was usually very high due to status scripts that run every few seconds to 
-display information about the blockchain, the channel count a.s.o.. However, this data is only interesting
-every now and then, so no need to stress the system all the time. Slim node is the opposite to
-rich menu-driven node distributions, I tried to keep the system simple and clean, and easy to debug. 
-Turns out: You can run a Bitcoin node and two Lightning nodes on the same tiny VPS without problems
- (unless you open a vast amount of channels).
+happy with most node distributions, which can be tricky to debug, if you run into problems, e.g. synchronisation
+stops. Also, the load on my Raspberry Pis was usually very high due to status scripts that run every
+few seconds to display information about the blockchain, the channel count etc.. This data is only
+interesting every now and then, so no need to stress the system all the time. SlimNode is the opposite
+to rich menu-driven node distributions, I tried to keep the system simple and clean, and easy to debug,
+with log files in obvious places and not spread across multiple mount points. 
+
+Turns out: You can run a Bitcoin node and two Lightning nodes on the same tiny VPS without problems, if
+you cut out the noise (unless you open a vast amount of channels).
 
 # Installation
 
@@ -54,38 +57,15 @@ bash ./install.sh
 The script will guide you through the installation process and ask, which steps you want to perform. 
 The setup process for a Bitcoin node is usally pretty straight-forward:
 
-- Secure your system, install necessary software, create bitcoin user etc.
-- Install Bitcoin node
-- Install Lightning node(s)
-- Install administration tools (RTL)
+- Install/Update system software, create bitcoin user, firewall configuration etc.
+- Install Bitcoin and Lightning node software
+- Tools, VPN & Wallets (RTL und ZeusLN)
 
 You can also leave out steps, if they have already been performed and you re-run the installer script.
 
-These are these interactive steps:
+Most software runs as the bitcoin user (home directory /home/bitcoin). 
 
-1. Install software packages, create bitcoin user and configure system (firewall etc.)?
-- Mandatory, run once. Updates the system and installs necessary software. Also creates the bitcoin system user.
-
-2. Install Bitcoin Core 27.0?
-- Mandatory, run once
-
-3. Install c-lightning?
-- Optional
-
-4. Install lnd? 
-- Optional
-
-5. Install Ride The Lightning?
-- Optional
-
-6. Configure Wireguard? 
-- Optional
-
-# File Structure
-
-All node implementation and RTL run as the bitcoin user (home directory /home/bitcoin). 
-
-## Logfiles
+## Important Logfiles
 
 | Node Software | Path |
 | -------- | ------- |
@@ -96,7 +76,11 @@ All node implementation and RTL run as the bitcoin user (home directory /home/bi
 
 
 
-## Optional NFS
+
+
+
+
+### Optional NFS
 
 ww /etc/systemd/system/multi-user.target.wants/wg-quick@wg0.service
 

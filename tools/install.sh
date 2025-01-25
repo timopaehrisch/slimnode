@@ -241,7 +241,7 @@ ask_to_continue() {
 }
 
 prepare_system() {
-  ask_to_continue "Install software packages, create bitcoin user and configure system (firewall etc.)?"
+  ask_to_continue "Install/Update software packages, create bitcoin user (if non-existant) and configure firewall etc.?"
   if [ $CONTINUE -eq 1 ];then
     sudo apt update 
     sudo apt full-upgrade -y 
@@ -253,16 +253,13 @@ prepare_system() {
 
     sudo apt install -y ${EXTRA_PKGS} jq pipx ufw htop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-venv wireguard python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio python3-grpc-tools python3-psutil ripgrep golang-go python3-json5 
     sudo apt autoremove -y
-#    if [ "$VERSION_ID" == "$VER22" ]; then
-#      sudo apt remove nodejs npm
-#    fi
     sudo systemctl enable fail2ban
     sudo systemctl enable tor
 #    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin no" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
 #    sudo rm /etc/ssh/sshd_config.d/50-cloud-init.conf
 
     # Check if bitcoin user exists
-    if id "$1" >/dev/null 2>&1; then
+    if id bitcoin >/dev/null 2>&1; then
       echo "User 'bitcoin' already exists. Skipping user creation."
     else
       echo "User 'bitcoin' does not exist. Creating user."
@@ -272,7 +269,15 @@ prepare_system() {
       echo "${FMT_RED}PASSWORD${FMT_RESET} ${FMT_YELLOW}Set a password for the 'bitcoin' system user and write it down/store it in a password manager.${FMT_RESET}"
       sudo passwd bitcoin
     fi
-    setup_firewall
+    echo "Setting firewall rules"
+    sudo ufw default deny incoming 
+    sudo ufw default allow outgoing
+    sudo ufw allow 51820/udp 
+    sudo ufw allow 22,9735,9736/tcp
+    sudo ufw allow proto tcp from 10.0.0.0/24 to 10.0.0.0/24 port 3000,3010,8080,8332,50002
+    sudo ufw logging off 
+    sudo ufw --force enable
+    sudo systemctl enable ufw  
     if [ -f "/home/bitcoin/.ssh/id_rsa" ]; then
       echo "SSH Keys already exists. Skipping."
     else
@@ -655,13 +660,13 @@ print_summary() {
   echo "${FMT_YELLOW}1. Configure WireGuard${FMT_RESET}"
   echo "${FMT_YELLOW}2 Set up Core Lightning Node in Zeus:${FMT_RESET}"
   echo "${FMT_YELLOW}2a Wallet Interface: Core Lightning (CLNRest)${FMT_RESET}"
-  echo "${FMT_YELLOW}2b Host: 10.0.0.1${FMT_RESET}"
+  echo "${FMT_YELLOW}2b Host: ${WG_NODE_VPN_IP}${FMT_RESET}"
   _RUNE=`. /home/bitcoin/RTL/rune.txt && echo $LIGHTNING_RUNE`
   echo "${FMT_YELLOW}2c Rune: ${_RUNE}${FMT_RESET}"
   echo "${FMT_YELLOW}2d REST Port: 3010${FMT_RESET}"
   echo "${FMT_YELLOW}2 Set up LND in Zeus:${FMT_RESET}"
   echo "${FMT_YELLOW}2a Wallet Interface: LND (REST)${FMT_RESET}"
-  echo "${FMT_YELLOW}2b Host: 10.0.0.1${FMT_RESET}"
+  echo "${FMT_YELLOW}2b Host: ${WG_NODE_VPN_IP}${FMT_RESET}"
   _MACAROON=`hexdump -ve '1/1 "%.2x"' /home/bitcoin/.lnd/data/chain/bitcoin/mainnet/admin.macaroon`
   echo "${FMT_YELLOW}2c Macaroon (Hex Format): ${_MACAROON}${FMT_RESET}"
   echo "${FMT_YELLOW}2d REST Port: 8080${FMT_RESET}"
@@ -682,7 +687,6 @@ setup_install() {
   if user_can_sudo; then
     echo "${FMT_GREEN}sudo for user allowed.${FMT_RESET}"
     prepare_system
-#    create_ssh_keys
     install_bitcoin_core
     install_core_lightning
     install_lnd
@@ -734,13 +738,6 @@ main() {
   done
   setup_color
   setup_install
- # setup_ohmyzsh
- # setup_zshrc
- # setup_shell
-
-#  print_success
-
-#  exec zsh -l
 }
 
 main "$@"
