@@ -258,7 +258,10 @@ install_packages() {
       EXTRA_PKGS=""
     fi
 
-    sudo apt install -y ${EXTRA_PKGS} jq pipx ufw htop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-venv wireguard python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go 
+    sudo apt install -y ${EXTRA_PKGS} jq pipx ufw htop iptraf fail2ban tor autoconf automake build-essential git libtool libsqlite3-dev libffi-dev python3 python3-pip net-tools zlib1g-dev libsodium-dev gettext python3-mako git automake autoconf-archive libtool build-essential pkg-config libev-dev libcurl4-gnutls-dev libsqlite3-dev python3-venv wireguard python3-flask python3-gunicorn python3-gevent python3-websockets python3-flask-cors python3-flask-socketio python3-gevent-websocket python3-grpcio nodejs npm python3-grpc-tools python3-psutil ripgrep golang-go python3-json5 
+    if [ "$VERSION_ID" == "$VER22" ]; then
+      sudo apt remove nodejs npm
+    fi
     sudo systemctl enable fail2ban
     sudo systemctl enable tor
 #    sudo echo -e "ChallengeResponseAuthentication no\nPasswordAuthentication no\nUsePAM no\nPermitRootLogin no" >/etc/ssh/sshd_config.d/99-disable_root_login.conf
@@ -502,7 +505,11 @@ fi'
 install_rtl() {
   ask_to_continue "Install Ride The Lightning?"
   if [ $CONTINUE -eq 1 ];then
-    sudo -u bitcoin sh -c "git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
+    if [ "$VERSION_ID" == "$VER22" ]; then
+      sudo -u bitcoin sh -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash"
+      sudo -u bitcoin sh -c ". ~/.profile;nvm install node"
+    fi
+    sudo -u bitcoin sh -c ". ~/.profile; git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
     sudo -u bitcoin sh -c 'tee ~/RTL/RTL-Config.json <<EOF
 {
   "port": "3000",
@@ -531,7 +538,24 @@ install_rtl() {
         "unannouncedChannels": false,
         "blockExplorerUrl": "https://mempool.space"
       }
-    }
+    },
+    {
+      "index": 2,
+      "lnNode": "lnd",
+      "lnImplementation": "LND",
+      "authentication": {
+        "macaroonPath": "/home/bitcoin/.lnd/data/chain/bitcoin/mainnet"
+      },
+      "settings": {
+        "userPersona": "OPERATOR",
+        "themeMode": "DAY",
+        "themeColor": "PURPLE",
+        "logLevel": "INFO",
+        "lnServerUrl": "https://127.0.0.1:8080",
+        "fiatConversion": false,
+        "unannouncedChannels": false,
+        "blockExplorerUrl": "https://mempool.space"
+      }
   ],
   "multiPass": "'"${RTL_PW}"'"
 }
@@ -539,13 +563,13 @@ EOF'
     sudo sh -c "tee /etc/systemd/system/rtl.service <<EOF
 [Unit]
 Description=Ride The Lightning
-After=bitcoind.service lightningd.service wg-quick@wg0.service
+After=bitcoind.service lightningd.service
 
 [Service]
 User=bitcoin
 Group=bitcoin
 WorkingDirectory=/home/bitcoin/RTL
-ExecStart=/usr/bin/node rtl
+ExecStart=/home/bitcoin/.nvm/versions/node/v23.6.1/bin/node rtl
 Type=simple
 
 [Install]
@@ -616,7 +640,7 @@ print_summary() {
   fi
   if [ "$RTL_INSTALLED" = true ] ; then
     echo 'rtl will be started.'
-    echo "You can access RTL at http://0.0.0.0:3000"
+    echo "You can access RTL at http://0.0.0.0:3000 with password '${RTL_PW}'"
   fi
   if [ "$WIREGUARD_INSTALLED" = true ] ; then
     echo 'wireguard will be started.'
