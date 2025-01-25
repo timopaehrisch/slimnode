@@ -382,7 +382,7 @@ EOF
 echo "net.ipv4.ip_forward=1" >>/etc/sysctl.conf
 sysctl -p
 
-systemctl restart wg-quick@wg0 && wg show
+systemctl enable wg-quick@ && systemctl restart wg-quick@wg0 && wg show
 ```
 
 TODO: wireguard-screenshot iphone & Desktop
