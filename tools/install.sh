@@ -283,6 +283,11 @@ prepare_system() {
     else
       sudo -u bitcoin sh -c "ssh-keygen -t rsa -b 4096 -f /home/bitcoin/.ssh/id_rsa -P ''"
     fi
+
+    # system wide aliases
+    sudo tee /etc/profile.d/aliases.sh <<EOF
+alias nodelogs="multitail /home/bitcoin/.bitcoin/debug.log /home/bitcoin/.lightning/bitcoin/cl.log /home/bitcoin/.lnd/logs/bitcoin/mainnet/lnd.log"
+EOF
   fi
 }
 
@@ -294,24 +299,23 @@ reboot_system() {
 }
 
 install_bitcoin_core() {
-  VERSION="27.0"
-  ask_to_continue "Install Bitcoin Core ${VERSION}?"
-  if [ -f "/usr/local/bin/bitcoind" ]; then
+  ask_to_continue "Install Bitcoin Core ${BITCOIND_VERSION}?"
+  if [ "$BITCOIND_INSTALLED" = true ]; then
     echo "bitcoind already installed. Skipping."
     CONTINUE=0
   fi
 
   if [ $CONTINUE -eq 1 ];then
-    sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -P ~"
-    sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS -P ~"
-    sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${VERSION}/SHA256SUMS.asc -P ~"
+    sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${BITCOIND_VERSION}/bitcoin-${BITCOIND_VERSION}-x86_64-linux-gnu.tar.gz -P ~"
+    sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${BITCOIND_VERSION}/SHA256SUMS -P ~"
+    sudo -u bitcoin sh -c "wget https://bitcoincore.org/bin/bitcoin-core-${BITCOIND_VERSION}/SHA256SUMS.asc -P ~"
     sudo -u bitcoin sh -c "cd && sha256sum --ignore-missing --check ~/SHA256SUMS"
     sudo -u bitcoin sh -c 'curl -s "https://api.github.com/repositories/355107265/contents/builder-keys" | grep download_url | grep -oE "https://[a-zA-Z0-9./-]+" | while read url; do curl -s "$url" | gpg --import; done'
     sudo -u bitcoin sh -c "gpg --verify ~/SHA256SUMS.asc"
     echo "${FMT_YELLOW}Check validity of signatures.${FMT_RESET}"
     ask_to_continue "Signatures valid?"
-    sudo -u bitcoin sh -c "tar -xvf ~/bitcoin-${VERSION}-x86_64-linux-gnu.tar.gz -C ~"
-    sudo -u bitcoin sh -c "sudo install -m 0755 -o root -g root -t /usr/local/bin ~/bitcoin-${VERSION}/bin/*"  
+    sudo -u bitcoin sh -c "tar -xvf ~/bitcoin-${BITCOIND_VERSION}-x86_64-linux-gnu.tar.gz -C ~"
+    sudo -u bitcoin sh -c "sudo install -m 0755 -o root -g root -t /usr/local/bin ~/bitcoin-${BITCOIND_VERSION}/bin/*"  
     sudo -u bitcoin sh -c "mkdir -p ~/.bitcoin"
     sudo -u bitcoin sh -c "tee >~/.bitcoin/bitcoin.conf <<EOF
 daemon=1
@@ -352,7 +356,7 @@ EOF"
 
 install_core_lightning() {
   ask_to_continue "Install c-lightning?"
-  if [ -f "/usr/local/bin/lightningd" ]; then
+  if [ "$LIGHTNINGD_INSTALLED" = true ]; then
     echo "lightningd already installed. Skipping."
     CONTINUE=0
   fi
@@ -466,7 +470,7 @@ EOF
 
 install_lnd() {
   ask_to_continue "Install lnd?"
-  if [ -f "/home/bitcoin/lnd/lnd" ]; then
+  if [ "$LND_INSTALLED" = true ]; then
     echo "lnd already installed. Skipping."
     CONTINUE=0
   fi
@@ -514,6 +518,10 @@ fi'
 
 install_rtl() {
   ask_to_continue "Install Ride The Lightning?"
+  if [ "$RTL_INSTALLED" = true ]; then
+    echo "RTL configuration already exists. Skipping."
+    CONTINUE=0
+  fi
   if [ $CONTINUE -eq 1 ];then
     sudo -u bitcoin sh -c "PROFILE=/dev/null curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash"
     sudo -u bitcoin sh -c 'tee >>~/.profile <<EOF
@@ -598,6 +606,10 @@ EOF"
 
 configure_wireguard() {
   ask_to_continue "Configure Wireguard?"
+  if [ "$WIREGUARD_INSTALLED" = true ]; then
+    echo "WiregGuard configuration already exists. Skipping."
+    CONTINUE=0
+  fi
   if [ $CONTINUE -eq 1 ];then
     read -p "Enter wireguard public key from your phone: " PUBKEY_PHONE
     read -p "Enter wireguard public key from your work station: " PUBKEY_WORKSTATION
@@ -644,35 +656,38 @@ print_summary() {
   echo "${FMT_GREEN}Installation done.${FMT_RESET}"
   echo "${FMT_YELLOW}Summary:${FMT_RESET}"
   if [ "$BITCOIND_INSTALLED" = true ] ; then
-    echo 'bitcoind will be started.'
+    echo 'bitcoind will be started with the next reboot.'
   fi
   if [ "$LIGHTNINGD_INSTALLED" = true ] ; then
-    echo 'lightningd will be started.'
+    echo 'lightningd will be started with the next reboot.'
   fi
   if [ "$LND_INSTALLED" = true ] ; then
-    echo 'lnd will be started.'
+    echo 'lnd will be started with the next reboot.'
   fi
   if [ "$RTL_INSTALLED" = true ] ; then
-    echo 'rtl will be started.'
+    echo 'rtl will be started with the next reboot.'
     echo "You can access RTL at port 3000, e.g. http://127.0.0.1:3000 with password ${FMT_GREEN}'${RTL_PW}'${FMT_RESET}"
   fi
   if [ "$WIREGUARD_INSTALLED" = true ] ; then
-    echo 'wireguard will be started.'
+    echo 'wireguard will be started with the next reboot.'
   fi
-  echo "${FMT_GREEN}ZeusLNSetup${FMT_RESET}"
-  echo "${FMT_YELLOW}1. Configure WireGuard${FMT_RESET}"
-  echo "${FMT_YELLOW}2 Set up Core Lightning Node in Zeus:${FMT_RESET}"
-  echo "${FMT_YELLOW}2a Wallet Interface: Core Lightning (CLNRest)${FMT_RESET}"
-  echo "${FMT_YELLOW}2b Host: ${WG_NODE_VPN_IP}${FMT_RESET}"
+  echo "${FMT_GREEN}------------------------------------------------------------${FMT_RESET}"
+  echo "${FMT_GREEN}Connect to ZEUS Wallet - Make sure you configured WireGuard${FMT_RESET}"
+  echo "${FMT_GREEN}------------------------------------------------------------${FMT_RESET}"
+  echo "${FMT_YELLOW}Set up Core Lightning Node (CLN) in Zeus:${FMT_RESET}"
+  echo "${FMT_YELLOW}   -> Wallet Interface: Core Lightning (CLNRest)${FMT_RESET}"
+  echo "${FMT_YELLOW}   -> Host: ${WG_NODE_VPN_IP}${FMT_RESET}"
   _RUNE=`. /home/bitcoin/RTL/rune.txt && echo $LIGHTNING_RUNE`
-  echo "${FMT_YELLOW}2c Rune: ${_RUNE}${FMT_RESET}"
-  echo "${FMT_YELLOW}2d REST Port: 3010${FMT_RESET}"
+  echo "${FMT_YELLOW}   -> Rune: ${_RUNE}${FMT_RESET}"
+  echo "${FMT_YELLOW}   -> REST Port: 3010${FMT_RESET}"
+  echo "${FMT_GREEN}------------------------------------------------------------${FMT_RESET}"
   echo "${FMT_YELLOW}2 Set up LND in Zeus:${FMT_RESET}"
-  echo "${FMT_YELLOW}2a Wallet Interface: LND (REST)${FMT_RESET}"
-  echo "${FMT_YELLOW}2b Host: ${WG_NODE_VPN_IP}${FMT_RESET}"
+  echo "${FMT_GREEN}------------------------------------------------------------${FMT_RESET}"
+  echo "${FMT_YELLOW}  -> Wallet Interface: LND (REST)${FMT_RESET}"
+  echo "${FMT_YELLOW}  -> Host: ${WG_NODE_VPN_IP}${FMT_RESET}"
   _MACAROON=`hexdump -ve '1/1 "%.2x"' /home/bitcoin/.lnd/data/chain/bitcoin/mainnet/admin.macaroon`
-  echo "${FMT_YELLOW}2c Macaroon (Hex Format): ${_MACAROON}${FMT_RESET}"
-  echo "${FMT_YELLOW}2d REST Port: 8080${FMT_RESET}"
+  echo "${FMT_YELLOW}  -> Macaroon (Hex Format): ${_MACAROON}${FMT_RESET}"
+  echo "${FMT_YELLOW}  -> REST Port: 8080${FMT_RESET}"
 }
 
 # $1: file $2: key
@@ -686,6 +701,24 @@ read_property()
   done < "$file"
 }
 
+check_installed() {
+  if [ -f "/usr/local/bin/bitcoind" ]; then
+    BITCOIND_INSTALLED=true
+  fi
+  if [ -f "/usr/local/bin/lightningd" ]; then
+    LIGHTNINGD_INSTALLED=true
+  fi
+  if [ -f "/home/bitcoin/lnd/lnd" ]; then
+    LND_INSTALLED=true
+  fi
+  if [ -f "${BITCOIN_USER_HOME}/RTL/RTL-Config.json" ]; then
+    LND_INSTALLED=true
+  fi
+  if [ -f "/etc/wireguard/wg0.conf" ]; then
+    WIREGUARD_INSTALLED=true
+  fi
+}
+
 setup_install() {
   if user_can_sudo; then
     echo "${FMT_GREEN}sudo for user allowed.${FMT_RESET}"
@@ -697,7 +730,6 @@ setup_install() {
     configure_wireguard
     print_summary
     reboot_system
-
   else
     fmt_error 'user cannot run sudo'
     exit 1
@@ -705,8 +737,10 @@ setup_install() {
 }
 main() {
   WG_NODE_VPN_IP=10.0.0.2
+  BITCOIND_VERSION="27.0"
   PUBLIC_IP=`curl https://ipinfo.io/ip`
-  BITCOIND_CONF="/home/bitcoin/.bitcoin/bitcoin.conf"
+  BITCOIN_USER_HOME="/home/bitcoin"
+  BITCOIND_CONF="${BITCOIN_USER_HOME}/.bitcoin/bitcoin.conf"
   BITCOIND_RPCUSER_PROP="rpcpassword"
   found_property_value=""
   if [ -f ${BITCOIND_CONF} ]; then
@@ -724,12 +758,12 @@ main() {
   VER24="24.04"
   VER22="22.04"
   VER20="20.04"
-  echo "Running ${VERSION_ID}"
   if [[ "$VERSION_ID" != "$VER22" && "$VERSION_ID" != "$VER24" ]]
   then
     fmt_error 'Unsupported Ubuntu version'
     exit 1
   fi
+  echo "Running Ubuntu ${VERSION_ID}"
 
   # Parse arguments
   while [ $# -gt 0 ]; do
@@ -740,6 +774,7 @@ main() {
     shift
   done
   setup_color
+  check_installed
   setup_install
 }
 

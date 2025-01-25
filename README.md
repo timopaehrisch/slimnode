@@ -1,7 +1,7 @@
-# SlimNode - Set up minimalistic Bitcoin and Lightning node with a few steps
+# SlimNode - Set up minimalistic Bitcoin and Lightning node in a few steps
 
 This guide explains how to set up a Bitcoin and a Lightning node on a VPS (Virtual Private Server), 
-but the script should also work on a Raspberry Pi.
+but the script should also work on a Raspberry P or any other Ubuntu Linux installation.
 
 The following components can be installed:
 
@@ -11,8 +11,10 @@ The following components can be installed:
 * RTL (Ride The Lightning)
 * VPN access via WireGuard
 
+I found these tools the most useful while playing around with lightning.
+
 There are plenty of VPS providers out there, for about $5/month you can rent a VPS that’s more than
-enough for our purposte. Look for specs like these:
+enough for our purpose. Look for specs like these:
 
     8 GB RAM
     100 GB Disk Storage
@@ -63,15 +65,23 @@ The setup process for a Bitcoin node is usally pretty straight-forward:
 
 You can also leave out steps, if they have already been performed and you re-run the installer script.
 
-Most software runs as the bitcoin user (home directory /home/bitcoin). 
+Most software runs as the bitcoin user (home directory /home/bitcoin). Again, simple setup, one partition, 
+no fancy disk layouts. Most data goes to /home/bitcoin/*.
 
-## Important Logfiles
+## Useful information for node management
+
+### Important Logfiles
 
 | Node Software | Path |
 | -------- | ------- |
 | bitcoind  | ~/.bitcoin/debug.log   |
 | lightningd | ~/.lightning/bitcoin/cl.log  |
 | lnd | ~/.lnd/logs/bitcoin/mainnet/lnd.log  |
+
+A good view on the log gives the 'nodelogs' alias.
+
+## Handy command line tools
+
 
 
 
