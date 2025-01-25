@@ -241,7 +241,7 @@ ask_to_continue() {
 }
 
 prepare_system() {
-  ask_to_continue "Install software packages, create bitcoin user and configure firewall?"
+  ask_to_continue "Install software packages, create bitcoin user and configure system (firewall etc.)?"
   if [ $CONTINUE -eq 1 ];then
     sudo apt update 
     sudo apt full-upgrade -y 
@@ -287,7 +287,7 @@ setup_firewall() {
   sudo ufw default allow outgoing
   sudo ufw allow 51820/udp 
   sudo ufw allow 22,9735,9736/tcp
-  sudo ufw allow proto tcp from 10.0.0.0/24 to 10.0.0.0/24 port 3000,8332,50002
+  sudo ufw allow proto tcp from 10.0.0.0/24 to 10.0.0.0/24 port 3000,3010,8080,8332,50002
   sudo ufw logging off 
   sudo ufw --force enable
   sudo systemctl enable ufw
@@ -446,6 +446,17 @@ EOF"
     sudo chown bitcoin:bitcoin /run/lightningd/
     sudo chmod 755 /run/lightningd/
     sudo systemctl enable lightningd.service
+
+    # maintenance tasks
+    sudo tee /etc/cron.hourly/backuptasks <<EOF
+#!/bin/sh
+rsync -av /home/bitcoin/.lightning/bitcoin/emergency.recover /home/bitcoin/.lightning/bitcoin/backups/emergency.recover.bak
+rsync -av /home/bitcoin/.lightning/bitcoin/hsm_secret /home/bitcoin/.lightning/bitcoin/backups/hsm_secret.bak
+EOF
+    chmod 755 /etc/cron.hourly/backuptasks
+    echo "55 4    * * *   bitcoin lightning-cli backup-compact"  >>/etc/crontab
+    systemctl restart cron.service
+
     LIGHTNINGD_INSTALLED=true
   fi
 }
@@ -635,11 +646,25 @@ print_summary() {
   fi
   if [ "$RTL_INSTALLED" = true ] ; then
     echo 'rtl will be started.'
-    echo "You can access RTL at http://0.0.0.0:3000 with password '${RTL_PW}'"
+    echo "You can access RTL at port 3000, e.g. http://127.0.0.1:3000 with password ${FMT_GREEN}'${RTL_PW}'${FMT_RESET}"
   fi
   if [ "$WIREGUARD_INSTALLED" = true ] ; then
     echo 'wireguard will be started.'
   fi
+  echo "${FMT_GREEN}ZeusLNSetup${FMT_RESET}"
+  echo "${FMT_YELLOW}1. Configure WireGuard${FMT_RESET}"
+  echo "${FMT_YELLOW}2 Set up Core Lightning Node in Zeus:${FMT_RESET}"
+  echo "${FMT_YELLOW}2a Wallet Interface: Core Lightning (CLNRest)${FMT_RESET}"
+  echo "${FMT_YELLOW}2b Host: 10.0.0.1${FMT_RESET}"
+  _RUNE=`. /home/bitcoin/RTL/rune.txt && echo $LIGHTNING_RUNE`
+  echo "${FMT_YELLOW}2c Rune: ${_RUNE}${FMT_RESET}"
+  echo "${FMT_YELLOW}2d REST Port: 3010${FMT_RESET}"
+  echo "${FMT_YELLOW}2 Set up LND in Zeus:${FMT_RESET}"
+  echo "${FMT_YELLOW}2a Wallet Interface: LND (REST)${FMT_RESET}"
+  echo "${FMT_YELLOW}2b Host: 10.0.0.1${FMT_RESET}"
+  _MACAROON=`hexdump -ve '1/1 "%.2x"' /home/bitcoin/.lnd/data/chain/bitcoin/mainnet/admin.macaroon`
+  echo "${FMT_YELLOW}2c Macaroon (Hex Format): ${_MACAROON}${FMT_RESET}"
+  echo "${FMT_YELLOW}2d REST Port: 8080${FMT_RESET}"
 }
 
 # $1: file $2: key
