@@ -25,6 +25,22 @@ HOME="${HOME:-$(getent passwd $USER 2>/dev/null | cut -d: -f6)}"
 # macOS does not have getent, but this works even if $HOME is unset
 HOME="${HOME:-$(eval echo ~$USER)}"
 
+TEMPLATE_BITCOIN_CONF="
+daemon=1
+server=1
+prune=50000
+onion=127.0.0.1:9050
+listen=1
+deprecatedrpc=create_bdb
+walletbroadcast=0
+rpcbind=0.0.0.0:8332
+rpcallowip=0.0.0.0/0
+whitelist=0.0.0.0/0
+rpcuser=bitcoin
+rpcpassword=${BITCOIND_PW}
+zmqpubrawblock=tcp://127.0.0.1:28332
+zmqpubrawtx=tcp://127.0.0.1:28333
+"
 
 
 command_exists() {
@@ -283,6 +299,7 @@ TimeoutSec=120
 WantedBy=multi-user.target
 EOF"
     sudo systemctl enable bitcoind.service
+    sudo systemctl start bitcoind.service
     BITCOIND_INSTALLED=true
   fi
 }
@@ -386,6 +403,7 @@ EOF"
     sudo chown bitcoin:bitcoin /run/lightningd/
     sudo chmod 755 /run/lightningd/
     sudo systemctl enable lightningd.service
+    sudo systemctl start lightningd.service
 
     # maintenance tasks
     sudo tee /etc/cron.hourly/backuptasks <<EOF
@@ -446,6 +464,8 @@ if [ -d "$HOME/lnd" ] ; then
   PATH="$HOME/lnd:$PATH"
 fi
 '
+    sudo systemctl enable lnd.service
+    sudo systemctl start lnd.service
     LND_INSTALLED=true
   fi
 }
@@ -463,14 +483,14 @@ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || pr
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 EOF
 '
-    sudo -u bitcoin sh -c ". ~/.profile;nvm install node"
-    sudo -u bitcoin sh -c "rm -rf /home/bitcoin/RTL"
+    sudo -u bitcoin sh -c "export NVM_DIR='${BITCOIN_USER_HOME}/.nvm' ; . ${BITCOIN_USER_HOME}/.nvm/nvm.sh && nvm install node"
+    sudo -u bitcoin sh -c "rm -rf ${BITCOIN_USER_HOME}/RTL"
     sudo -u bitcoin sh -c ". ~/.bashrc; git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
     sudo -u bitcoin sh -c 'tee ~/RTL/RTL-Config.json <<EOF
 {
   "port": "3000",
   "defaultNodeIndex": 1,
-  "dbDirectoryPath": "/home/bitcoin/RTL/",
+  "dbDirectoryPath": "${BITCOIN_USER_HOME}/RTL/",
   "SSO": {
     "rtlSSO": 0,
     "rtlCookiePath": "",
@@ -482,7 +502,7 @@ EOF
       "lnNode": "Core Lightning",
       "lnImplementation": "CLN",
       "authentication": {
-        "runePath": "/home/bitcoin/RTL/rune.txt"
+        "runePath": "${BITCOIN_USER_HOME}/RTL/rune.txt"
       },
       "settings": {
         "userPersona": "OPERATOR",
@@ -606,23 +626,28 @@ print_summary() {
   if [ "$WIREGUARD_INSTALLED" = true ] ; then
     echo 'wireguard will be started with the next reboot.'
   fi
-  echo "${FMT_GREEN}------------------------------------------------------------${FMT_RESET}"
-  echo "${FMT_GREEN}Connect to ZEUS Wallet - Make sure you configured WireGuard${FMT_RESET}"
-  echo "${FMT_GREEN}------------------------------------------------------------${FMT_RESET}"
-  echo "${FMT_YELLOW}Set up Core Lightning Node (CLN) in Zeus:${FMT_RESET}"
+  echo "${FMT_GREEN}-----------------------------------------------------------------${FMT_RESET}"
+  echo "${FMT_GREEN} ZEUS Wallet Connection data (WireGuard needs to be configured)${FMT_RESET}"
+  echo "${FMT_GREEN}-----------------------------------------------------------------${FMT_RESET}"
+  echo "${FMT_YELLOW}1 Set up for Core Lightning Node (CLN):${FMT_RESET}"
+  echo "${FMT_GREEN}-----------------------------------------------------------------${FMT_RESET}"
   echo "${FMT_YELLOW}   -> Wallet Interface: Core Lightning (CLNRest)${FMT_RESET}"
   echo "${FMT_YELLOW}   -> Host: ${WG_NODE_VPN_IP}${FMT_RESET}"
   _RUNE=`. /home/bitcoin/RTL/rune.txt && echo $LIGHTNING_RUNE`
   echo "${FMT_YELLOW}   -> Rune: ${_RUNE}${FMT_RESET}"
   echo "${FMT_YELLOW}   -> REST Port: 3010${FMT_RESET}"
-  echo "${FMT_GREEN}------------------------------------------------------------${FMT_RESET}"
-  echo "${FMT_YELLOW}2 Set up LND in Zeus:${FMT_RESET}"
-  echo "${FMT_GREEN}------------------------------------------------------------${FMT_RESET}"
+  echo "${FMT_GREEN}-----------------------------------------------------------------${FMT_RESET}"
+  echo "${FMT_YELLOW}2 Set up fot LND:${FMT_RESET}"
+  echo "${FMT_GREEN}-----------------------------------------------------------------${FMT_RESET}"
   echo "${FMT_YELLOW}  -> Wallet Interface: LND (REST)${FMT_RESET}"
   echo "${FMT_YELLOW}  -> Host: ${WG_NODE_VPN_IP}${FMT_RESET}"
   _MACAROON=`hexdump -ve '1/1 "%.2x"' /home/bitcoin/.lnd/data/chain/bitcoin/mainnet/admin.macaroon`
   echo "${FMT_YELLOW}  -> Macaroon (Hex Format): ${_MACAROON}${FMT_RESET}"
   echo "${FMT_YELLOW}  -> REST Port: 8080${FMT_RESET}"
+  echo "${FMT_GREEN}-----------------------------------------------------------------${FMT_RESET}"
+  echo "${FMT_YELLOW}Ride The Lightning (RTL) is listening on port 3000, e.g.:${FMT_RESET}"
+  echo "${FMT_GREEN}-----------------------------------------------------------------${FMT_RESET}"
+  echo "${FMT_YELLOW}  -> http://${WG_NODE_VPN_IP}:3000${FMT_RESET}"
 }
 
 # $1: file $2: key
@@ -681,10 +706,11 @@ main() {
   if [ -f ${BITCOIND_CONF} ]; then
     read_property ${BITCOIND_CONF} ${BITCOIND_RPCUSER_PROP}
     if [ -n "$found_property_value" ]; then
-      echo "Found property ${BITCOIND_RPCUSER_PROP}=${found_property_value} from file ${BITCOIND_CONF}"
+      echo "Read BITCOIND_PWD from file ${BITCOIND_CONF}"
       BITCOIND_PW=${found_property_value} 
     else
-      echo "found_property_value is empty, that means ${BITCOIND_RPCUSER_PROP} was not found in ${BITCOIND_CONF}. Gemerating password"
+#      echo "found_property_value is empty, that means ${BITCOIND_RPCUSER_PROP} was not found in ${BITCOIND_CONF}. Gemerating password"
+      echo "Generating new BITCOIND_PW"
       BITCOIND_PW=`cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1`
     fi
   fi

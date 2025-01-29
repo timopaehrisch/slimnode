@@ -53,8 +53,8 @@ You should now be logged into your VPS as root or as a user with sudo permission
 Download and execute the installer script:
 
 ```console
-wget https://raw.githubusercontent.com/timopaehrisch/slimnode/refs/heads/main/tools/install.sh
-bash ./install.sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/timopaehrisch/slimnode/refs/heads/main/tools/install.sh"
+
 ```
 The script will guide you through the installation process and ask, which steps you want to perform. 
 The setup process for a Bitcoin node is usally pretty straight-forward:
