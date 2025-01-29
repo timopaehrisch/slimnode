@@ -73,73 +73,7 @@ else
   }
 fi
 
-# This function uses the logic from supports-hyperlinks[1][2], which is
-# made by Kat Marchán (@zkat) and licensed under the Apache License 2.0.
-# [1] https://github.com/zkat/supports-hyperlinks
-# [2] https://crates.io/crates/supports-hyperlinks
-#
-# Copyright (c) 2021 Kat Marchán
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-supports_hyperlinks() {
-  # $FORCE_HYPERLINK must be set and be non-zero (this acts as a logic bypass)
-  if [ -n "$FORCE_HYPERLINK" ]; then
-    [ "$FORCE_HYPERLINK" != 0 ]
-    return $?
-  fi
 
-  # If stdout is not a tty, it doesn't support hyperlinks
-  is_tty || return 1
-
-  # DomTerm terminal emulator (domterm.org)
-  if [ -n "$DOMTERM" ]; then
-    return 0
-  fi
-
-  # VTE-based terminals above v0.50 (Gnome Terminal, Guake, ROXTerm, etc)
-  if [ -n "$VTE_VERSION" ]; then
-    [ $VTE_VERSION -ge 5000 ]
-    return $?
-  fi
-
-  # If $TERM_PROGRAM is set, these terminals support hyperlinks
-  case "$TERM_PROGRAM" in
-  Hyper|iTerm.app|terminology|WezTerm|vscode) return 0 ;;
-  esac
-
-  # These termcap entries support hyperlinks
-  case "$TERM" in
-  xterm-kitty|alacritty|alacritty-direct) return 0 ;;
-  esac
-
-  # xfce4-terminal supports hyperlinks
-  if [ "$COLORTERM" = "xfce4-terminal" ]; then
-    return 0
-  fi
-
-  # Windows Terminal also supports hyperlinks
-  if [ -n "$WT_SESSION" ]; then
-    return 0
-  fi
-
-  # Konsole supports hyperlinks, but it's an opt-in setting that can't be detected
-  # https://github.com/ohmyzsh/ohmyzsh/issues/10964
-  # if [ -n "$KONSOLE_VERSION" ]; then
-  #   return 0
-  # fi
-
-  return 1
-}
 
 # Adapted from code and information by Anton Kochkov (@XVilka)
 # Source: https://gist.github.com/XVilka/8346728
@@ -510,7 +444,8 @@ EOF"
 # set PATH to include lnd binaries
 if [ -d "$HOME/lnd" ] ; then
   PATH="$HOME/lnd:$PATH"
-fi'
+fi
+'
     LND_INSTALLED=true
   fi
 }
@@ -526,7 +461,8 @@ install_rtl() {
     sudo -u bitcoin sh -c 'tee >>~/.profile <<EOF
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
-EOF'
+EOF
+'
     sudo -u bitcoin sh -c ". ~/.profile;nvm install node"
     sudo -u bitcoin sh -c "rm -rf /home/bitcoin/RTL"
     sudo -u bitcoin sh -c ". ~/.bashrc; git clone https://github.com/Ride-The-Lightning/RTL.git ~/RTL && cd ~/RTL && npm install --omit=dev --legacy-peer-deps" 
@@ -707,7 +643,7 @@ check_installed() {
   if [ -f "/usr/local/bin/lightningd" ]; then
     LIGHTNINGD_INSTALLED=true
   fi
-  if [ -f "/home/bitcoin/lnd/lnd" ]; then
+  if [ -f "${BITCOIN_USER_HOME}/lnd/lnd" ]; then
     LND_INSTALLED=true
   fi
   if [ -f "${BITCOIN_USER_HOME}/RTL/RTL-Config.json" ]; then
